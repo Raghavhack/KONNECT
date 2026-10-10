@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from "react";
+    import { useState, useEffect, useRef, useMemo } from "react";
 import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
@@ -15,6 +15,7 @@ import {
   Activity,
   CheckCircle2,
   ShieldCheck,
+  Cloud,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import { fadeUp, stagger } from "../lib/motion";
@@ -101,7 +102,9 @@ export default function LiveDemo() {
     []
   );
 
-  // Check backend health
+  const [onedriveStatus, setOnedriveStatus] = useState({ connected: false });
+
+  // Check backend health and OneDrive status
   useEffect(() => {
     fetch("/api/health")
       .then((res) => {
@@ -109,6 +112,11 @@ export default function LiveDemo() {
         else setBackendStatus("simulated");
       })
       .catch(() => setBackendStatus("simulated"));
+
+    fetch("/api/auth/onedrive/status")
+      .then((res) => res.json())
+      .then((data) => setOnedriveStatus(data))
+      .catch(() => {});
   }, []);
 
   // Periodic simulated events
@@ -180,13 +188,36 @@ export default function LiveDemo() {
 
   const handleSimulateEdit = () => {
     const now = new Date().toLocaleTimeString();
-    const editSources = ["Drive: SecurityAudit.md", "Notion: Sprint Backlog", "Slack: #incident-room"];
+    const editSources = ["OneDrive: SecurityAudit.md", "OneDrive: Architecture.docx", "OneDrive: SprintNotes.txt"];
     const chosen = editSources[Math.floor(Math.random() * editSources.length)];
+    const docId = `onedrive-doc-${Math.floor(Math.random() * 900) + 100}`;
+
+    // Trigger real backend webhook with debouncing & idempotency
+    fetch("/api/webhooks/onedrive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        value: [
+          {
+            subscriptionId: "live-demo-subscription",
+            clientState: "konnect_onedrive_secret_state_token",
+            changeType: "updated",
+            resource: `me/drive/items/${docId}`,
+            resourceData: { id: docId },
+          },
+        ],
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("[LiveDemo] Real backend webhook response:", data);
+      })
+      .catch((err) => console.warn("[LiveDemo] Webhook ping failed:", err));
 
     setLog((prev) => [
       ...prev.slice(-15),
       { tag: "WEBHOOK", text: `Inbound edit: ${chosen}`, time: now },
-      { tag: "QUEUE", text: "BullMQ debounce 300ms quiet window passed", time: now },
+      { tag: "QUEUE", text: "BullMQ debounce 3000ms quiet window started", time: now },
       { tag: "NEO4J", text: "Patched 4 nodes, 6 edges in Neo4j GDS", time: now },
       { tag: "GNN-GRU", text: "ROLAND updated hidden states for k=2 neighbourhood", time: now },
     ]);
@@ -242,6 +273,21 @@ export default function LiveDemo() {
             <Server size={12} />
             {backendStatus === "connected" ? "Backend Connected (Port 5000)" : "Simulated Local Orchestration"}
           </span>
+          {onedriveStatus.connected ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 ring-1 ring-blue-500/30">
+              <Cloud size={12} /> OneDrive: {onedriveStatus.account?.displayName || "Connected"}
+            </span>
+          ) : (
+            <a
+              href="http://localhost:5000/api/auth/onedrive/connect"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 ring-1 ring-blue-500/30 hover:bg-blue-600 hover:text-white transition"
+              title="Click to authenticate Microsoft Graph OAuth 2.0"
+            >
+              <Cloud size={12} /> Connect OneDrive (OAuth 2.0)
+            </a>
+          )}
           {isAuthenticated && (
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 ring-1 ring-emerald-500/30">
               <CheckCircle2 size={12} /> Authenticated: {user?.name}
