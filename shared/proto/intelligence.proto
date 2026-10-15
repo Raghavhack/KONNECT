@@ -1,0 +1,232 @@
+syntax = "proto3";
+
+package konnect.intelligence.v1;
+
+option go_package = "konnect/intelligence/v1;intelligencev1";
+option java_package = "com.konnect.intelligence.v1";
+
+// -----------------------------------------------------------------------------
+// IntelligenceService: Core gRPC contract between JS Orchestration and Python
+// -----------------------------------------------------------------------------
+service IntelligenceService {
+  // Parse document text, chunk it, and perform initial entity/relation extraction
+  rpc ParseDocument(ParseDocumentRequest) returns (ParseDocumentResponse);
+
+  // Incrementally update the knowledge graph with document changes (k-hop ROLAND update)
+  rpc UpdateKnowledgeGraph(UpdateKnowledgeGraphRequest) returns (UpdateKnowledgeGraphResponse);
+
+  // Server-streaming RPC to emit real-time graph deltas to frontend via JS backend
+  rpc StreamGraphUpdates(StreamGraphUpdatesRequest) returns (stream GraphDeltaEvent);
+
+  // PCST-driven semantic query answering with citations and subgraph context
+  rpc Query(QueryRequest) returns (QueryResponse);
+
+  // Invalidate semantic query cache for specific entities or documents
+  rpc InvalidateCache(InvalidateCacheRequest) returns (InvalidateCacheResponse);
+
+  // Latency and performance benchmarking for bounded k-hop re-embedding
+  rpc BenchmarkLatency(BenchmarkRequest) returns (BenchmarkResponse);
+
+  // Health check for service and connected subsystems
+  rpc CheckHealth(HealthCheckRequest) returns (HealthCheckResponse);
+}
+
+// -----------------------------------------------------------------------------
+// Document Parsing Messages
+// -----------------------------------------------------------------------------
+message ParseDocumentRequest {
+  string document_id = 1;
+  string title = 2;
+  string content = 3;
+  string source_url = 4;
+  map<string, string> metadata = 5;
+}
+
+message DocumentChunk {
+  string chunk_id = 1;
+  string text = 2;
+  int32 chunk_index = 3;
+  int32 start_char = 4;
+  int32 end_char = 5;
+  repeated string detected_entities = 6;
+}
+
+message ParseDocumentResponse {
+  string document_id = 1;
+  repeated DocumentChunk chunks = 2;
+  repeated ExtractedEntity entities = 3;
+  repeated ExtractedRelationship relationships = 4;
+  float processing_time_ms = 5;
+}
+
+// -----------------------------------------------------------------------------
+// Graph Entities and Relationships
+// -----------------------------------------------------------------------------
+message ExtractedEntity {
+  string id = 1;
+  string name = 2;
+  string type = 3;
+  string description = 4;
+  repeated string aliases = 5;
+  float importance_score = 6;
+  repeated float embedding = 7;
+  map<string, string> properties = 8;
+}
+
+message ExtractedRelationship {
+  string id = 1;
+  string source_name = 2;
+  string target_name = 3;
+  string relation_type = 4;
+  string description = 5;
+  float weight = 6;
+  map<string, string> properties = 7;
+}
+
+// -----------------------------------------------------------------------------
+// Incremental Update Messages
+// -----------------------------------------------------------------------------
+message UpdateKnowledgeGraphRequest {
+  string document_id = 1;
+  string title = 2;
+  string content = 3;
+  int32 k_hops = 4;                 // Tunable bounded-neighborhood hop parameter
+  bool trigger_leiden = 5;          // Recompute local Leiden communities
+  bool invalidate_cache = 6;        // Trigger cache invalidation for cited nodes
+  map<string, string> metadata = 7;
+}
+
+message UpdateKnowledgeGraphResponse {
+  bool success = 1;
+  string document_id = 2;
+  int32 affected_nodes_count = 3;
+  int32 new_entities_count = 4;
+  int32 new_relationships_count = 5;
+  int32 updated_embeddings_count = 6;
+  int32 k_hops_applied = 7;
+  float roland_gru_time_ms = 8;
+  float total_time_ms = 9;
+  repeated string invalidated_cache_keys = 10;
+  string message = 11;
+}
+
+message StreamGraphUpdatesRequest {
+  string client_id = 1;
+  repeated string document_ids = 2;
+}
+
+enum DeltaAction {
+  DELTA_ACTION_UNSPECIFIED = 0;
+  ADDED_NODE = 1;
+  UPDATED_NODE = 2;
+  REMOVED_NODE = 3;
+  ADDED_EDGE = 4;
+  UPDATED_EDGE = 5;
+  REMOVED_EDGE = 6;
+  COMMUNITY_UPDATE = 7;
+}
+
+message GraphDeltaEvent {
+  string event_id = 1;
+  int64 timestamp = 2;
+  DeltaAction action = 3;
+  string document_id = 4;
+  ExtractedEntity entity = 5;
+  ExtractedRelationship relationship = 6;
+  string community_id = 7;
+  repeated float new_embedding = 8;
+}
+
+// -----------------------------------------------------------------------------
+// Query & Retrieval Messages (PCST + LLM)
+// -----------------------------------------------------------------------------
+message QueryRequest {
+  string query_id = 1;
+  string query = 2;
+  int32 max_subgraph_nodes = 3;
+  float pcst_cost_weight = 4;
+  float similarity_threshold = 5;
+  bool bypass_cache = 6;
+  string llm_provider = 7;          // "openai", "anthropic", or "default"
+  string model_name = 8;
+}
+
+message Citation {
+  string entity_id = 1;
+  string entity_name = 2;
+  string document_id = 3;
+  string quote = 4;
+  float relevance_score = 5;
+}
+
+message CommunitySummary {
+  string community_id = 1;
+  string title = 2;
+  string summary = 3;
+  repeated string member_entity_names = 4;
+}
+
+message SubgraphData {
+  repeated ExtractedEntity nodes = 1;
+  repeated ExtractedRelationship edges = 2;
+  repeated CommunitySummary communities = 3;
+  float total_prize_collected = 4;
+  float total_cost_incurred = 5;
+}
+
+message QueryResponse {
+  string query_id = 1;
+  string answer = 2;
+  repeated Citation citations = 3;
+  SubgraphData subgraph = 4;
+  bool cache_hit = 5;
+  float retrieval_time_ms = 6;
+  float generation_time_ms = 7;
+  float total_latency_ms = 8;
+}
+
+// -----------------------------------------------------------------------------
+// Semantic Cache Management
+// -----------------------------------------------------------------------------
+message InvalidateCacheRequest {
+  repeated string entity_ids = 1;
+  repeated string document_ids = 2;
+}
+
+message InvalidateCacheResponse {
+  int32 evicted_keys_count = 1;
+  repeated string evicted_keys = 2;
+}
+
+// -----------------------------------------------------------------------------
+// Latency Benchmarking (Section 7 Evaluation)
+// -----------------------------------------------------------------------------
+message BenchmarkRequest {
+  int32 k_hops = 1;
+  int32 num_synthetic_nodes = 2;
+  int32 num_synthetic_edges = 3;
+}
+
+message BenchmarkResponse {
+  int32 k_hops = 1;
+  int32 affected_nodes = 2;
+  float preprocessing_time_ms = 3;
+  float roland_gru_time_ms = 4;
+  float full_graph_equivalent_time_ms = 5;
+  float speedup_factor = 6;
+  float total_latency_ms = 7;
+}
+
+// -----------------------------------------------------------------------------
+// Health Check
+// -----------------------------------------------------------------------------
+message HealthCheckRequest {
+  string client_id = 1;
+}
+
+message HealthCheckResponse {
+  string status = 1;
+  string service_name = 2;
+  string version = 3;
+  map<string, bool> subsystems = 4; // "neo4j", "redis", "pytorch", "spacy", "embeddings"
+}
