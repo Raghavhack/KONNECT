@@ -64,6 +64,41 @@ class Neo4jGraphStore:
         ]
         self.client.execute_query(cypher_chunk, {"doc_id": document_id, "chunks": chunk_data})
 
+    def delete_document_contributions(self, document_id: str) -> Dict[str, Any]:
+        """
+        Removes a document's contributions before updating:
+        1. Deletes all chunk nodes for the document.
+        2. Deletes MENTIONED_IN edges from entities to this document.
+        3. Deletes entities that are no longer mentioned in ANY other document.
+        Enforces Section 6.4 partial invalidation.
+        """
+        if not self.client.is_connected:
+            return self.client.in_memory_fallback.delete_document_contributions(document_id)
+
+        # 1. Delete document chunks
+        cypher_chunks = """
+        MATCH (c:Chunk)-[:PART_OF]->(d:Document {id: $doc_id})
+        DETACH DELETE c
+        """
+        self.client.execute_query(cypher_chunks, {"doc_id": document_id})
+
+        # 2. Delete MENTIONED_IN edges and prune orphaned entities
+        cypher_entities = """
+        MATCH (e:Entity)-[r:MENTIONED_IN]->(d:Document {id: $doc_id})
+        DELETE r
+        WITH e
+        WHERE NOT (e)-[:MENTIONED_IN]->(:Document)
+        DETACH DELETE e
+        RETURN count(e) AS deleted_count
+        """
+        records = self.client.execute_query(cypher_entities, {"doc_id": document_id})
+        deleted_count = records[0]["deleted_count"] if records else 0
+
+        return {
+            "document_id": document_id,
+            "deleted_entities_count": deleted_count,
+        }
+
     def upsert_entities(
         self, entities: List[ExtractedEntity], document_id: Optional[str] = None
     ) -> None:
@@ -98,14 +133,8 @@ class Neo4jGraphStore:
             n.embedding = e.embedding,
             n.created_at = timestamp()
         ON MATCH SET
-            n.description = CASE
-                WHEN e.description <> '' AND NOT n.description CONTAINS e.description
-                THEN n.description + '; ' + e.description
-                ELSE n.description END,
-            n.importance_score = CASE
-                WHEN e.importance_score > n.importance_score
-                THEN e.importance_score
-                ELSE n.importance_score END,
+            n.description = e.description,
+            n.importance_score = e.importance_score,
             n.embedding = coalesce(e.embedding, n.embedding),
             n.updated_at = timestamp()
         """
@@ -167,11 +196,8 @@ class Neo4jGraphStore:
             rel.description = r.description,
             rel.created_at = timestamp()
         ON MATCH SET
-            rel.weight = rel.weight + 0.1,
-            rel.description = CASE
-                WHEN r.description <> '' AND NOT rel.description CONTAINS r.description
-                THEN rel.description + '; ' + r.description
-                ELSE rel.description END,
+            rel.weight = r.weight,
+            rel.description = r.description,
             rel.updated_at = timestamp()
         """
         batch = [
@@ -215,13 +241,12 @@ class Neo4jGraphStore:
         # Native fallback Cypher without requiring APOC plugin:
         native_cypher = f"""
         MATCH (seed:Entity) WHERE seed.name IN $seeds
-        OPTIONAL MATCH path = (seed)-[:RELATES_TO*1..{k}]-(neighbor:Entity)
-        WITH collect(DISTINCT seed) + collect(DISTINCT neighbor) AS all_nodes
-        UNWIND all_nodes AS n
-        WITH DISTINCT n
-        MATCH (n)-[r:RELATES_TO]-(m:Entity)
-        WHERE m IN collect(DISTINCT n)
-        RETURN collect(DISTINCT n) AS nodes, collect(DISTINCT r) AS rels
+        OPTIONAL MATCH (seed)-[:RELATES_TO*0..{k}]-(neighbor:Entity)
+        WITH collect(DISTINCT neighbor) AS node_list
+        UNWIND node_list AS n
+        OPTIONAL MATCH (n)-[r:RELATES_TO]-(m:Entity)
+        WHERE m IN node_list
+        RETURN node_list AS nodes, collect(DISTINCT r) AS rels
         """
 
         try:
@@ -234,9 +259,10 @@ class Neo4jGraphStore:
                         "description": n.get("description", ""),
                         "importance_score": n.get("importance_score", 1.0),
                         "embedding": n.get("embedding"),
+                        "gnn_embedding": n.get("gnn_embedding"),
                     }
                     for n in records[0]["nodes"]
-                    if n is not None
+                    if n is not None and n.get("name")
                 ]
                 rels = [
                     {
@@ -281,50 +307,70 @@ class Neo4jGraphStore:
         return list(nodes_dict.values()), rels_list
 
     def update_node_embeddings(self, embeddings_dict: Dict[str, List[float]]) -> None:
-        """Updates node embedding vectors (output from ROLAND GRU) in Neo4j."""
+        """Updates node GNN embedding vectors (output from ROLAND GRU) in Neo4j without overwriting text embeddings."""
         if not embeddings_dict:
             return
 
         if not self.client.is_connected:
             for name, emb in embeddings_dict.items():
                 self.client.in_memory_fallback.upsert_node(
-                    label="Entity", name=name, properties={"embedding": emb}
+                    label="Entity", name=name, properties={"gnn_embedding": emb}
                 )
             return
 
         cypher = """
         UNWIND $updates AS u
         MATCH (e:Entity {name: u.name})
-        SET e.embedding = u.embedding, e.embedding_updated_at = timestamp()
+        SET e.gnn_embedding = u.embedding, e.gnn_embedding_updated_at = timestamp()
         """
         batch = [{"name": k, "embedding": v} for k, v in embeddings_dict.items()]
         self.client.execute_query(cypher, {"updates": batch})
 
     def search_vector_index(
-        self, query_embedding: List[float], top_k: int = 15
+        self, query_embedding: List[float], top_k: int = 15, use_gnn: bool = True
     ) -> List[Dict[str, Any]]:
         """
         Queries the colocated Neo4j vector index for entities closest to the query.
         Used for initial prize seeding in PCST retrieval.
+        Supports Arm D (PCST without GNN) when use_gnn=False.
         """
         if not self.client.is_connected:
-            return self.client.in_memory_fallback.vector_search(query_embedding, top_k)
+            return self.client.in_memory_fallback.vector_search(query_embedding, top_k, use_gnn=use_gnn)
+
+        index_name = self.client.gnn_vector_index_name if (use_gnn and hasattr(self.client, "gnn_vector_index_name")) else self.client.vector_index_name
 
         cypher = f"""
-        CALL db.index.vector.queryNodes('{self.client.vector_index_name}', $top_k, $query_vector)
+        CALL db.index.vector.queryNodes('{index_name}', $top_k, $query_vector)
         YIELD node, score
         RETURN node.name AS name,
                node.type AS type,
                node.description AS description,
                node.importance_score AS importance_score,
                node.embedding AS embedding,
+               node.gnn_embedding AS gnn_embedding,
                score
         """
         try:
             records = self.client.execute_query(
                 cypher, {"top_k": top_k, "query_vector": query_embedding}
             )
+            if records:
+                return records
+            # If GNN vector index returns empty or isn't built yet, try standard vector index
+            if use_gnn and index_name != self.client.vector_index_name:
+                cypher_fallback = f"""
+                CALL db.index.vector.queryNodes('{self.client.vector_index_name}', $top_k, $query_vector)
+                YIELD node, score
+                RETURN node.name AS name,
+                       node.type AS type,
+                       node.description AS description,
+                       node.importance_score AS importance_score,
+                       node.embedding AS embedding,
+                       node.gnn_embedding AS gnn_embedding,
+                       score
+                """
+                return self.client.execute_query(cypher_fallback, {"top_k": top_k, "query_vector": query_embedding})
             return records
         except Exception as e:
             logger.debug(f"Direct vector index query exception: {e}. Falling back to in-memory cosine.")
-            return self.client.in_memory_fallback.vector_search(query_embedding, top_k)
+            return self.client.in_memory_fallback.vector_search(query_embedding, top_k, use_gnn=use_gnn)
