@@ -30,30 +30,39 @@ class PCSTSubgraphRetriever:
         cost_weight: float = 0.20,
         prize_threshold: float = 0.35,
         max_subgraph_nodes: int = 25,
+        use_gnn: bool = True,
     ):
         self.embedder = embedder
         self.graph_store = graph_store
         self.cost_weight = cost_weight
         self.prize_threshold = prize_threshold
         self.max_subgraph_nodes = max_subgraph_nodes
+        self.use_gnn = use_gnn
 
     def assign_node_prizes_from_scratch(
         self,
         query_embedding: np.ndarray,
         nodes: List[Dict[str, Any]],
         threshold: float,
+        use_gnn: bool = True,
     ) -> np.ndarray:
         """
         FROM-SCRATCH Prize Assignment Function.
         Computes cosine similarity between query vector and each node representation,
         scaling by node importance and thresholding.
+        When use_gnn=True, utilizes the residual GNN embedding (or falls back to text embedding).
+        When use_gnn=False, utilizes the text embedding (Arm D ablation).
         """
         N = len(nodes)
         prizes = np.zeros(N, dtype=np.float64)
         norm_q = np.linalg.norm(query_embedding) + 1e-9
 
         for i, node in enumerate(nodes):
-            emb = node.get("embedding")
+            if use_gnn:
+                emb = node.get("gnn_embedding") or node.get("embedding")
+            else:
+                emb = node.get("embedding")
+
             if emb is not None and len(emb) > 0:
                 v = np.array(emb, dtype=np.float32)
                 norm_v = np.linalg.norm(v) + 1e-9
@@ -101,6 +110,7 @@ class PCSTSubgraphRetriever:
         k_hop_seed_top_k: int = 10,
         cost_weight: Optional[float] = None,
         threshold: Optional[float] = None,
+        use_gnn: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         End-to-end PCST retrieval:
@@ -113,15 +123,22 @@ class PCSTSubgraphRetriever:
         """
         c_weight = cost_weight if cost_weight is not None else self.cost_weight
         th = threshold if threshold is not None else self.prize_threshold
+        gnn_flag = use_gnn if use_gnn is not None else self.use_gnn
 
         # 1. Embed query
         q_emb = self.embedder.embed_text(query)
 
         # 2. Vector search in Neo4j to find top seed nodes
         vector_candidates = self.graph_store.search_vector_index(
-            query_embedding=q_emb.tolist(), top_k=k_hop_seed_top_k
+            query_embedding=q_emb.tolist(), top_k=k_hop_seed_top_k, use_gnn=gnn_flag
         )
-        seed_names = [c["name"] for c in vector_candidates if "name" in c]
+        seed_names = []
+        for c in vector_candidates:
+            name = c.get("name")
+            if not name and isinstance(c.get("node"), dict):
+                name = c["node"].get("name")
+            if name:
+                seed_names.append(name)
 
         if not seed_names:
             return {
@@ -137,7 +154,7 @@ class PCSTSubgraphRetriever:
         )
 
         if not cand_nodes:
-            cand_nodes = vector_candidates
+            cand_nodes = [c.get("node") if "node" in c and isinstance(c["node"], dict) else c for c in vector_candidates]
             cand_edges = []
 
         node_names = [n["name"] for n in cand_nodes if "name" in n]
@@ -145,7 +162,7 @@ class PCSTSubgraphRetriever:
         N = len(node_names)
 
         # 4. From-Scratch Prize Assignment
-        prizes = self.assign_node_prizes_from_scratch(q_emb, cand_nodes, threshold=th)
+        prizes = self.assign_node_prizes_from_scratch(q_emb, cand_nodes, threshold=th, use_gnn=gnn_flag)
 
         # 5. Build edge array and cost assignment
         edge_pairs = []
