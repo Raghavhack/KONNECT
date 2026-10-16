@@ -85,6 +85,7 @@ async def answer_query(
             bypass_cache=payload.bypass_cache,
             cost_weight=payload.pcst_cost_weight,
             similarity_threshold=payload.similarity_threshold,
+            use_gnn=payload.use_gnn,
         )
         return QueryResponseModel(**res)
     except Exception as e:
