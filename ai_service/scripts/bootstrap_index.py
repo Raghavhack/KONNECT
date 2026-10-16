@@ -22,11 +22,12 @@ from app.graph.neo4j_client import Neo4jClient
 from app.graph.store import Neo4jGraphStore
 from app.graph.community import CommunityDetector
 
-logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
-logger = logging.getLogger("bootstrap")
+from app.gnn.roland_gru import RolandHierarchicalGRU
+from app.gnn.neighborhood import BoundedNeighborhoodManager
+from scripts.train_roland import train_roland
 
 
-def run_bootstrap(docs_dir: str):
+def run_bootstrap(docs_dir: str, train_gnn: bool = False):
     logger.info(f"Starting bootstrap indexing from directory: {docs_dir}")
     doc_path = Path(docs_dir)
     if not doc_path.exists():
@@ -36,7 +37,10 @@ def run_bootstrap(docs_dir: str):
     # Initialize subsystems
     processor = TextProcessor(model_name=settings.SPACY_MODEL)
     chunker = SemanticChunker(processor=processor)
-    embedder = SentenceTransformerEmbedder(model_name=settings.EMBEDDING_MODEL_NAME)
+    embedder = SentenceTransformerEmbedder(
+        model_name=settings.EMBEDDING_MODEL_NAME,
+        embedding_dim=settings.NEO4J_EMBEDDING_DIM,
+    )
     llm = LLMClient(provider=settings.LLM_PROVIDER, openai_api_key=settings.OPENAI_API_KEY)
     extractor = GraphRAGIncrementalExtractor(llm_client=llm, embedder=embedder)
 
@@ -44,6 +48,9 @@ def run_bootstrap(docs_dir: str):
         uri=settings.NEO4J_URI,
         user=settings.NEO4J_USER,
         password=settings.NEO4J_PASSWORD,
+        database=settings.NEO4J_DATABASE,
+        vector_index_name=settings.NEO4J_VECTOR_INDEX_NAME,
+        embedding_dim=settings.NEO4J_EMBEDDING_DIM,
     )
     store = Neo4jGraphStore(client=neo4j_client)
     community_detector = CommunityDetector(client=neo4j_client, llm_client=llm)
@@ -52,7 +59,7 @@ def run_bootstrap(docs_dir: str):
     logger.info(f"Discovered {len(files)} files to bootstrap.")
 
     total_chunks = 0
-    total_entities = 0
+    all_entity_names = set()
     total_relationships = 0
 
     for idx, f in enumerate(files):
@@ -70,17 +77,77 @@ def run_bootstrap(docs_dir: str):
         store.upsert_relationships(relationships)
 
         total_chunks += len(chunks)
-        total_entities += len(entities)
+        for e in entities:
+            all_entity_names.add(e.name)
         total_relationships += len(relationships)
 
     logger.info(
-        f"Bootstrap indexing complete! Ingested {len(files)} docs, {total_chunks} chunks, "
-        f"{total_entities} entities, {total_relationships} relationships."
+        f"Corpus ingestion complete! Ingested {len(files)} docs, {total_chunks} chunks, "
+        f"{len(all_entity_names)} entities, {total_relationships} relationships."
     )
+
+    # Initialize ROLAND GNN
+    roland = RolandHierarchicalGRU(
+        in_dim=settings.NEO4J_EMBEDDING_DIM,
+        hidden_dim=settings.GNN_HIDDEN_DIM,
+        out_dim=settings.NEO4J_EMBEDDING_DIM,
+        num_layers=settings.GNN_NUM_LAYERS,
+        gnn_type=settings.GNN_TYPE,
+        dropout=settings.GNN_DROPOUT,
+        residual=True,
+    )
+
+    # Train GNN if requested, or load existing checkpoint
+    checkpoint_path = os.path.abspath(
+        os.path.join(os.path.dirname(__file__), "..", settings.ROLAND_MODEL_PATH)
+    )
+    if train_gnn:
+        logger.info("Executing GNN training over bootstrap documents...")
+        train_roland(
+            docs_dir=docs_dir,
+            epochs=5,
+            save_path=checkpoint_path,
+            in_dim=settings.NEO4J_EMBEDDING_DIM,
+            hidden_dim=settings.GNN_HIDDEN_DIM,
+            out_dim=settings.NEO4J_EMBEDDING_DIM,
+        )
+    elif os.path.exists(checkpoint_path):
+        roland.load_checkpoint(checkpoint_path)
+
+    # Execute GNN initial embedding pass over entire bootstrap graph
+    if all_entity_names:
+        logger.info(f"Running initial ROLAND GNN embedding pass on {len(all_entity_names)} entities...")
+        neighborhood_mgr = BoundedNeighborhoodManager(roland_model=roland, default_k=settings.DEFAULT_K_HOPS)
+        nodes, edges = store.get_k_hop_neighborhood(
+            seed_entity_names=list(all_entity_names),
+            k=settings.DEFAULT_K_HOPS,
+        )
+        updated_embeddings, metrics = neighborhood_mgr.run_bounded_update(
+            seed_entity_names=list(all_entity_names),
+            neighborhood_nodes=nodes,
+            neighborhood_edges=edges,
+            k=settings.DEFAULT_K_HOPS,
+        )
+        store.update_node_embeddings(updated_embeddings)
+        logger.info(
+            f"Committed {len(updated_embeddings)} initial GNN representations to store in {metrics['processing_time_ms']}ms."
+        )
+
+        # Scoped initial community detection
+        logger.info("Computing initial Leiden communities...")
+        communities = community_detector.detect_communities_incremental(
+            affected_entity_names=list(all_entity_names),
+            neighborhood_nodes=nodes,
+            neighborhood_edges=edges,
+        )
+        logger.info(f"Detected {len(communities)} communities.")
+
+    logger.info("Bootstrap indexing and GNN initialization complete!")
 
 
 if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Bootstrap index documents into Neo4j")
+    parser = argparse.ArgumentParser(description="Bootstrap index documents into Neo4j and run GNN")
     parser.add_argument("--docs-dir", type=str, default="./sample_docs", help="Path to documents folder")
+    parser.add_argument("--train-gnn", action="store_true", help="Train ROLAND GRU on bootstrap corpus")
     args = parser.parse_args()
-    run_bootstrap(args.docs_dir)
+    run_bootstrap(args.docs_dir, train_gnn=args.train_gnn)
