@@ -164,6 +164,7 @@ class IntelligenceServicer(pb2_grpc.IntelligenceServiceServicer):
             bypass_cache=request.bypass_cache,
             cost_weight=request.pcst_cost_weight if request.pcst_cost_weight > 0 else None,
             similarity_threshold=request.similarity_threshold if request.similarity_threshold > 0 else None,
+            use_gnn=getattr(request, "use_gnn", True),
         )
 
         citations_pb = [
