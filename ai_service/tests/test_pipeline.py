@@ -98,3 +98,53 @@ def test_end_to_end_pipeline():
     bench = neighborhood_mgr.benchmark_comparison(num_total_nodes=1000, num_total_edges=5000, k=2)
     assert bench["k_hops"] == 2
     assert bench["speedup_factor"] >= 1.0
+
+
+def test_k_hop_multi_hop_expansion():
+    """Verifies that k-hop neighborhood query actually expands across hops and does not collapse to 1-hop."""
+    client = Neo4jClient()
+    store = Neo4jGraphStore(client=client)
+
+    # Build a linear chain: N0 - N1 - N2 - N3 - N4
+    for i in range(5):
+        client.in_memory_fallback.upsert_node(
+            label="Entity",
+            name=f"Node_{i}",
+            properties={"importance_score": 1.0, "embedding": [0.1] * 64},
+        )
+    for i in range(4):
+        client.in_memory_fallback.upsert_edge(
+            src=f"Node_{i}",
+            tgt=f"Node_{i+1}",
+            relation_type="LINKS_TO",
+            properties={"weight": 1.0},
+        )
+
+    # Sweep over k from 1 to 3
+    nodes_k1, _ = store.get_k_hop_neighborhood(seed_entity_names=["Node_0"], k=1)
+    nodes_k2, _ = store.get_k_hop_neighborhood(seed_entity_names=["Node_0"], k=2)
+    nodes_k3, _ = store.get_k_hop_neighborhood(seed_entity_names=["Node_0"], k=3)
+
+    assert len(nodes_k1) == 2  # Node_0, Node_1
+    assert len(nodes_k2) == 3  # Node_0, Node_1, Node_2
+    assert len(nodes_k3) == 4  # Node_0, Node_1, Node_2, Node_3
+    # Sweep over k is strictly increasing, proving it does NOT fall back to 1 hop!
+    assert len(nodes_k1) < len(nodes_k2) < len(nodes_k3)
+
+
+def test_main_app_pipeline_wiring():
+    """Verifies that app.main correctly wires all components together into pipeline_container and FastAPI."""
+    from app.main import initialize_pipeline, create_app
+    from app.api.routes import pipeline_container
+
+    container = initialize_pipeline()
+    assert "incremental_engine" in container
+    assert "query_engine" in container
+    assert "neighborhood_manager" in container
+    assert "graph_store" in container
+    assert "roland_model" in container
+
+    app = create_app()
+    assert app.title == "KONNECT Intelligence Service"
+    assert len(app.routes) > 0
+
