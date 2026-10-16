@@ -38,6 +38,7 @@ class QueryRequestModel(BaseModel):
     pcst_cost_weight: Optional[float] = Field(default=0.20, ge=0.01, le=1.0)
     similarity_threshold: Optional[float] = Field(default=0.35, ge=0.0, le=1.0)
     bypass_cache: bool = Field(default=False, description="Bypass Redis semantic cache")
+    use_gnn: bool = Field(default=True, description="Use GNN representations or base text embeddings (Arm D ablation)")
 
 
 class CitationModel(BaseModel):

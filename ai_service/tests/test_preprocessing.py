@@ -40,7 +40,7 @@ def test_entity_spotting():
 
 def test_semantic_chunker():
     processor = TextProcessor()
-    chunker = SemanticChunker(processor=processor, chunk_size=30, chunk_overlap=10)
+    chunker = SemanticChunker(processor=processor, chunk_size=15, chunk_overlap=5)
     text = (
         "Document ingestion begins here. Each document is parsed and cleaned. "
         "Sentences are grouped into semantic segments. Chunks maintain overlap for contextual continuity. "

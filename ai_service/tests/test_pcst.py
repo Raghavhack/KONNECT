@@ -73,3 +73,85 @@ def test_context_builder():
     assert "Apple" in context
     assert "M4 Chip" in context
     assert "DEVELOPED" in context
+
+
+def test_in_memory_retrieval_returns_nodes_when_neo4j_disconnected():
+    dim = 64
+    embedder = SentenceTransformerEmbedder(embedding_dim=dim)
+    client = Neo4jClient(embedding_dim=dim)
+    assert client.is_connected is False  # In-memory fallback mode
+    store = Neo4jGraphStore(client=client)
+
+    # Ingest entities into fallback graph
+    q_vec = embedder.embed_text("Quantum Computing Algorithms")
+    client.in_memory_fallback.upsert_node(
+        label="Entity",
+        name="Quantum Computing",
+        properties={
+            "id": "e1",
+            "type": "TECHNOLOGY",
+            "description": "High speed quantum processor.",
+            "importance_score": 1.0,
+            "embedding": q_vec.tolist(),
+            "gnn_embedding": q_vec.tolist(),
+        },
+    )
+    client.in_memory_fallback.upsert_node(
+        label="Entity",
+        name="Qubits",
+        properties={
+            "id": "e2",
+            "type": "CONCEPT",
+            "description": "Basic unit of quantum information.",
+            "importance_score": 0.9,
+            "embedding": q_vec.tolist(),
+            "gnn_embedding": q_vec.tolist(),
+        },
+    )
+    client.in_memory_fallback.upsert_edge(
+        src="Quantum Computing",
+        tgt="Qubits",
+        relation_type="UTILIZES",
+        properties={"weight": 1.0, "description": "Utilizes qubits"},
+    )
+
+    retriever = PCSTSubgraphRetriever(embedder=embedder, graph_store=store, prize_threshold=0.2)
+    subgraph = retriever.retrieve_subgraph("Quantum Computing Algorithms")
+
+    # In-memory fallback must NOT return empty results
+    assert len(subgraph["nodes"]) > 0
+    node_names = [n["name"] for n in subgraph["nodes"]]
+    assert "Quantum Computing" in node_names
+    assert subgraph["total_prize"] > 0.0
+
+
+def test_arm_d_ablation_pcst_without_gnn():
+    dim = 64
+    embedder = SentenceTransformerEmbedder(embedding_dim=dim)
+    client = Neo4jClient(embedding_dim=dim)
+    store = Neo4jGraphStore(client=client)
+
+    q_vec = np.ones(dim, dtype=np.float32) / np.sqrt(dim)
+    orthogonal_vec = np.zeros(dim, dtype=np.float32)
+    orthogonal_vec[0] = 1.0
+
+    # Node where text embedding is aligned with query, but gnn_embedding is orthogonal
+    nodes = [
+        {
+            "name": "HybridNode",
+            "embedding": q_vec.tolist(),
+            "gnn_embedding": orthogonal_vec.tolist(),
+            "importance_score": 1.0,
+        }
+    ]
+
+    retriever = PCSTSubgraphRetriever(embedder=embedder, graph_store=store)
+
+    # Arm D (use_gnn=False): evaluates text embedding -> high prize
+    prizes_arm_d = retriever.assign_node_prizes_from_scratch(q_vec, nodes, threshold=0.5, use_gnn=False)
+    assert prizes_arm_d[0] > 0.5
+
+    # Full GNN (use_gnn=True): evaluates gnn_embedding -> lower prize
+    prizes_gnn = retriever.assign_node_prizes_from_scratch(q_vec, nodes, threshold=0.5, use_gnn=True)
+    assert prizes_arm_d[0] > prizes_gnn[0]
+

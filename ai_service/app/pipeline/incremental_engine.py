@@ -97,6 +97,10 @@ class IncrementalEngine:
         )
         extract_time_ms = (time.perf_counter() - t0) * 1000.0
 
+        # Step 2.5: Invalidate previous document contributions (Section 6.4 partial invalidation)
+        # Removes previous chunks, mentions, and deletes entities not mentioned in other docs
+        self.graph_store.delete_document_contributions(document_id)
+
         # Step 3: Upsert to Neo4j
         self.graph_store.upsert_document_and_chunks(document_id, title, chunks)
         self.graph_store.upsert_entities(entities, document_id=document_id)

@@ -58,19 +58,21 @@ class Settings(BaseSettings):
 
     # GNN & ROLAND Dynamic Graph Model
     GNN_HIDDEN_DIM: int = 128
-    GNN_OUT_DIM: int = 64
+    GNN_OUT_DIM: int = 384  # Matches NEO4J_EMBEDDING_DIM for residual readout in text space
     GNN_NUM_LAYERS: int = 2
     GNN_TYPE: str = "GAT"  # "GAT" or "GraphSAGE"
     GNN_DROPOUT: float = 0.1
     DEFAULT_K_HOPS: int = Field(default=2, env="DEFAULT_K_HOPS")  # Tunable parameter for Section 7 evaluation
     ROLAND_LEARNING_RATE: float = 0.005
     ROLAND_TRUNCATED_BPTT_STEPS: int = 3
+    ROLAND_MODEL_PATH: str = Field(default="models/roland_model.pt", env="ROLAND_MODEL_PATH")
 
     # PCST (Prize-Collecting Steiner Tree) Retrieval
     PCST_COST_WEIGHT: float = 0.15
     PCST_PRIZE_THRESHOLD: float = 0.40
     PCST_MAX_SUBGRAPH_NODES: int = 25
     PCST_PRUNING: str = "gw"  # Goemans-Williamson
+    PCST_USE_GNN: bool = Field(default=True, env="PCST_USE_GNN")  # Set False for Arm D ablation
 
     # LLM Settings (OpenAI / Anthropic)
     LLM_PROVIDER: str = Field(default="openai", env="LLM_PROVIDER")  # "openai" or "anthropic"

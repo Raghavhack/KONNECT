@@ -113,10 +113,11 @@ if TORCH_AVAILABLE:
             self,
             in_dim: int,
             hidden_dim: int = 128,
-            out_dim: int = 64,
+            out_dim: int = 384,
             num_layers: int = 2,
             gnn_type: str = "GAT",
             dropout: float = 0.1,
+            residual: bool = True,
         ):
             super().__init__()
             self.in_dim = in_dim
@@ -124,6 +125,7 @@ if TORCH_AVAILABLE:
             self.out_dim = out_dim
             self.num_layers = num_layers
             self.gnn_type = gnn_type
+            self.residual = residual
 
             # Initial feature projection
             self.input_proj = nn.Linear(in_dim, hidden_dim)
@@ -157,7 +159,7 @@ if TORCH_AVAILABLE:
             """
             Performs the ROLAND forward pass on the (sub)graph.
 
-            x: [N, in_dim] Node initial features
+            x: [N, in_dim] Node initial features (text embeddings)
             edge_index: [2, E] Graph edges
             node_ids: [N] Identifier of each node in x
             update_cache: bool, whether to commit updated states to state_cache
@@ -188,9 +190,34 @@ if TORCH_AVAILABLE:
                         layer_idx=l, node_ids=node_ids, new_states=h_curr
                     )
 
-            # Final embedding readout
-            out_embeddings = self.readout(h_prev_layer)
+            # Final embedding readout with residual connection to text embedding space
+            proj_h = self.readout(h_prev_layer)
+            if self.residual and self.out_dim == self.in_dim:
+                out_embeddings = x + proj_h
+            else:
+                out_embeddings = proj_h
             return out_embeddings
+
+        def save_checkpoint(self, path: str) -> None:
+            """Saves PyTorch model weights to disk."""
+            import os
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            torch.save(self.state_dict(), path)
+            logger.info(f"Saved ROLAND model checkpoint to {path}")
+
+        def load_checkpoint(self, path: str) -> bool:
+            """Loads PyTorch model weights from disk."""
+            import os
+            if not os.path.exists(path):
+                return False
+            try:
+                state_dict = torch.load(path, map_location="cpu")
+                self.load_state_dict(state_dict)
+                logger.info(f"Successfully loaded ROLAND model checkpoint from {path}")
+                return True
+            except Exception as e:
+                logger.warning(f"Failed to load ROLAND checkpoint from {path}: {e}")
+                return False
 
 else:
     # Standalone NumPy implementation of ROLAND GRU for environments without PyTorch
@@ -204,14 +231,16 @@ else:
             self,
             in_dim: int,
             hidden_dim: int = 128,
-            out_dim: int = 64,
+            out_dim: int = 384,
             num_layers: int = 2,
+            residual: bool = True,
             **kwargs,
         ):
             self.in_dim = in_dim
             self.hidden_dim = hidden_dim
             self.out_dim = out_dim
             self.num_layers = num_layers
+            self.residual = residual
             self.state_cache = PerNodeStateCache(hidden_dim=hidden_dim)
 
             # Random deterministic weights
@@ -277,5 +306,43 @@ else:
                         layer_idx=l, node_ids=node_ids, new_states=h_curr
                     )
 
-            out = np.dot(h_prev_layer, self.W_out)
+            proj_h = np.dot(h_prev_layer, self.W_out)
+            if self.residual and self.out_dim == self.in_dim:
+                out = x_arr + proj_h
+            else:
+                out = proj_h
             return out
+
+        def save_checkpoint(self, path: str) -> None:
+            """Saves NumPy model weights to disk."""
+            import os
+            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+            weights = {
+                "W_in": self.W_in,
+                "W_z": self.W_z,
+                "U_z": self.U_z,
+                "W_r": self.W_r,
+                "U_r": self.U_r,
+                "W_h": self.W_h,
+                "U_h": self.U_h,
+                "W_out": self.W_out,
+            }
+            np.savez(path, **weights)
+            logger.info(f"Saved NumPy ROLAND checkpoint to {path}")
+
+        def load_checkpoint(self, path: str) -> bool:
+            """Loads NumPy model weights from disk."""
+            import os
+            actual_path = path if os.path.exists(path) else f"{path}.npz"
+            if not os.path.exists(actual_path):
+                return False
+            try:
+                data = np.load(actual_path)
+                for k in ["W_in", "W_z", "U_z", "W_r", "U_r", "W_h", "U_h", "W_out"]:
+                    if k in data:
+                        setattr(self, k, data[k])
+                logger.info(f"Loaded NumPy ROLAND checkpoint from {actual_path}")
+                return True
+            except Exception as e:
+                logger.warning(f"Failed to load NumPy ROLAND checkpoint from {actual_path}: {e}")
+                return False

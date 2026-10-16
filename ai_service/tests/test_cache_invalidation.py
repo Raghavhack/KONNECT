@@ -45,3 +45,43 @@ def test_semantic_cache_lookup_and_invalidation():
     # 5. Lookup again with original query vector -> Must MISS because it was evicted!
     evicted_lookup = cache.lookup(query_embedding=q_vec, similarity_threshold=0.90)
     assert evicted_lookup is None
+
+
+def test_stale_fact_removal_on_edit():
+    from app.graph.neo4j_client import Neo4jClient
+    from app.graph.store import Neo4jGraphStore
+    from app.extraction.models import ExtractedEntity, ExtractedRelationship
+
+    client = Neo4jClient()
+    store = Neo4jGraphStore(client=client)
+
+    # Ingest Document 1 containing Entity_A and Entity_B
+    e_a = ExtractedEntity(id="e1", name="Alpha", type="CONCEPT", description="First entity", importance_score=1.0)
+    e_b = ExtractedEntity(id="e2", name="Beta", type="CONCEPT", description="Second entity", importance_score=1.0)
+    store.upsert_entities([e_a, e_b], document_id="doc_1")
+    store.upsert_relationships([
+        ExtractedRelationship(id="r1", source_name="Alpha", target_name="Beta", relation_type="CONNECTS", weight=1.0)
+    ])
+
+    # Ingest Document 2 also mentioning Entity_A
+    store.upsert_entities([e_a], document_id="doc_2")
+
+    # Verify both entities exist
+    nodes, _ = store.get_k_hop_neighborhood(seed_entity_names=["Alpha"], k=1)
+    names = [n["name"] for n in nodes]
+    assert "Alpha" in names
+    assert "Beta" in names
+
+    # Now edit Document 1: Fact "Beta" is removed, replaced by "Gamma"
+    # Partial invalidation removes Document 1's previous contributions:
+    del_res = store.delete_document_contributions("doc_1")
+    assert "Beta" in del_res["deleted_entities"]  # Beta was orphaned!
+    assert "Alpha" not in del_res["deleted_entities"]  # Alpha is preserved because doc_2 still mentions it!
+
+    # Re-verify graph after deletion
+    nodes_after, edges_after = store.get_k_hop_neighborhood(seed_entity_names=["Alpha"], k=1)
+    names_after = [n["name"] for n in nodes_after]
+    assert "Alpha" in names_after
+    assert "Beta" not in names_after  # Stale fact successfully removed!
+    assert len(edges_after) == 0  # Edge connected to Beta was also pruned!
+

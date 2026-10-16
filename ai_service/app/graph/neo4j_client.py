@@ -32,10 +32,50 @@ class InMemoryGraphFallback:
 
     def upsert_node(self, label: str, name: str, properties: Dict[str, Any]) -> None:
         key = f"{label}:{name.lower()}"
+        doc_id = properties.get("document_id")
         if key in self.nodes:
             self.nodes[key].update(properties)
+            if doc_id:
+                self.nodes[key].setdefault("mentioned_in_docs", set()).add(doc_id)
         else:
-            self.nodes[key] = {"label": label, "name": name, **properties}
+            mentioned = {doc_id} if doc_id else set()
+            self.nodes[key] = {
+                "label": label,
+                "name": name,
+                "mentioned_in_docs": mentioned,
+                **properties,
+            }
+
+    def delete_document_contributions(self, document_id: str) -> Dict[str, Any]:
+        """
+        Removes a document's contributions and deletes entities mentioned exclusively
+        by this document (Section 6.4 partial invalidation).
+        """
+        if document_id in self.documents:
+            del self.documents[document_id]
+
+        orphaned_entities = []
+        for key, node in list(self.nodes.items()):
+            docs = node.get("mentioned_in_docs", set())
+            if document_id in docs:
+                docs.discard(document_id)
+            # If the entity was only referenced by this document and has no remaining docs
+            if not docs and node.get("document_id") == document_id:
+                orphaned_entities.append(node.get("name"))
+                del self.nodes[key]
+
+        orphaned_set = {n.lower() for n in orphaned_entities if n}
+        if orphaned_set:
+            self.edges = [
+                e for e in self.edges
+                if e.get("src", "").lower() not in orphaned_set
+                and e.get("tgt", "").lower() not in orphaned_set
+            ]
+
+        return {
+            "document_id": document_id,
+            "deleted_entities": orphaned_entities,
+        }
 
     def upsert_edge(
         self,
@@ -89,18 +129,32 @@ class InMemoryGraphFallback:
         return subgraph_nodes, subgraph_edges
 
     def vector_search(
-        self, query_vector: List[float], top_k: int = 10
+        self, query_vector: List[float], top_k: int = 10, use_gnn: bool = True
     ) -> List[Dict[str, Any]]:
         results = []
         q = np.array(query_vector, dtype=np.float32)
         norm_q = np.linalg.norm(q) + 1e-9
 
         for n in self.nodes.values():
-            emb = n.get("embedding")
+            emb = None
+            if use_gnn:
+                emb = n.get("gnn_embedding") or n.get("embedding")
+            else:
+                emb = n.get("embedding")
+
             if emb:
                 v = np.array(emb, dtype=np.float32)
                 sim = float(np.dot(q, v) / (norm_q * (np.linalg.norm(v) + 1e-9)))
-                results.append({"node": n, "score": sim})
+                results.append({
+                    "name": n.get("name"),
+                    "type": n.get("type", "CONCEPT"),
+                    "description": n.get("description", ""),
+                    "importance_score": n.get("importance_score", 1.0),
+                    "embedding": n.get("embedding"),
+                    "gnn_embedding": n.get("gnn_embedding"),
+                    "score": sim,
+                    "node": n,
+                })
 
         results.sort(key=lambda x: x["score"], reverse=True)
         return results[:top_k]
@@ -128,6 +182,7 @@ class Neo4jClient:
         self.password = password
         self.database = database
         self.vector_index_name = vector_index_name
+        self.gnn_vector_index_name = f"{vector_index_name}_gnn"
         self.embedding_dim = embedding_dim
         self.driver: Optional[Driver] = None
         self.in_memory_fallback = InMemoryGraphFallback()
@@ -186,22 +241,23 @@ class Neo4jClient:
                 except Exception as e:
                     logger.debug(f"Constraint creation note: {e}")
 
-            # Create Neo4j Vector Index for fast PCST prize calculation
-            try:
-                vector_idx_stmt = f"""
-                CREATE VECTOR INDEX {self.vector_index_name} IF NOT EXISTS
-                FOR (e:Entity) ON (e.embedding)
-                OPTIONS {{
-                  indexConfig: {{
-                    `vector.dimensions`: {self.embedding_dim},
-                    `vector.similarity_function`: 'cosine'
-                  }}
-                }}
-                """
-                session.run(vector_idx_stmt)
-                logger.info(f"Verified Neo4j vector index '{self.vector_index_name}'.")
-            except Exception as e:
-                logger.debug(f"Vector index creation note (requires Neo4j 5.11+): {e}")
+            # Create Neo4j Vector Indexes for fast PCST prize calculation
+            for idx_name, prop_name in [(self.vector_index_name, "embedding"), (self.gnn_vector_index_name, "gnn_embedding")]:
+                try:
+                    vector_idx_stmt = f"""
+                    CREATE VECTOR INDEX {idx_name} IF NOT EXISTS
+                    FOR (e:Entity) ON (e.{prop_name})
+                    OPTIONS {{
+                      indexConfig: {{
+                        `vector.dimensions`: {self.embedding_dim},
+                        `vector.similarity_function`: 'cosine'
+                      }}
+                    }}
+                    """
+                    session.run(vector_idx_stmt)
+                    logger.info(f"Verified Neo4j vector index '{idx_name}' for property '{prop_name}'.")
+                except Exception as e:
+                    logger.debug(f"Vector index creation note (requires Neo4j 5.11+): {e}")
 
     def execute_query(self, query: str, parameters: Optional[Dict[str, Any]] = None) -> List[Dict[str, Any]]:
         """Executes a Cypher query with parameters against Neo4j."""

@@ -125,6 +125,34 @@ class LLMClient:
         if "extract all salient entities" in (system_prompt or "").lower():
             # Generate mock JSON extraction for GraphRAG
             import json
+            import re
+            text_match = re.search(r"Text segment:\s*\"\"\"(.*?)\"\"\"", prompt, re.DOTALL)
+            segment_text = text_match.group(1) if text_match else prompt
+            candidates = re.findall(r"\b[A-Z][a-zA-Z0-9_\-\.]+(?:\s+[A-Z][a-zA-Z0-9_\-\.]+)*\b", segment_text)
+            candidates = [c for c in candidates if len(c) > 1 and c.lower() not in {"text", "document", "segment", "json"}]
+            if len(candidates) >= 2:
+                unique_c = list(dict.fromkeys(candidates))
+                found_entities = [
+                    {
+                        "name": c,
+                        "type": "TECHNOLOGY",
+                        "description": f"Extracted entity {c}",
+                        "importance_score": 1.0,
+                    }
+                    for c in unique_c[:6]
+                ]
+                rels = [
+                    {
+                        "source": found_entities[i]["name"],
+                        "target": found_entities[i + 1]["name"],
+                        "relation_type": "RELATES_TO",
+                        "description": f"{found_entities[i]['name']} relates to {found_entities[i + 1]['name']}",
+                        "weight": 0.9,
+                    }
+                    for i in range(len(found_entities) - 1)
+                ]
+                return json.dumps({"entities": found_entities, "relationships": rels})
+
             mock = {
                 "entities": [
                     {

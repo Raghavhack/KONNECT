@@ -41,6 +41,7 @@ class QueryEngine:
         bypass_cache: bool = False,
         cost_weight: Optional[float] = None,
         similarity_threshold: Optional[float] = None,
+        use_gnn: Optional[bool] = None,
     ) -> Dict[str, Any]:
         """
         Executes query answering:
@@ -79,6 +80,7 @@ class QueryEngine:
             query=query,
             cost_weight=cost_weight,
             threshold=similarity_threshold,
+            use_gnn=use_gnn,
         )
         retrieval_time_ms = (time.perf_counter() - t_ret) * 1000.0
 
