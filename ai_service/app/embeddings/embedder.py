@@ -74,10 +74,18 @@ class SentenceTransformerEmbedder:
     def _fallback_embed(self, text: str) -> np.ndarray:
         """
         Generates a deterministic unit-normalized pseudo-embedding for testing/fallback.
+        Accumulates deterministic word-level vectors so overlapping vocabulary yields semantic similarity.
         """
-        seed = int(hashlib.sha256(text.encode("utf-8")).hexdigest()[:8], 16)
-        rng = np.random.RandomState(seed)
-        vec = rng.randn(self.embedding_dim).astype(np.float32)
+        words = [w.strip().lower() for w in text.split() if w.strip()]
+        if not words:
+            words = [text.strip().lower() or "empty"]
+
+        vec = np.zeros(self.embedding_dim, dtype=np.float32)
+        for w in words:
+            seed = int(hashlib.sha256(w.encode("utf-8")).hexdigest()[:8], 16)
+            rng = np.random.RandomState(seed)
+            vec += rng.randn(self.embedding_dim).astype(np.float32)
+
         norm = np.linalg.norm(vec)
         return vec / (norm + 1e-9)
 
