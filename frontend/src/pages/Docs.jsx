@@ -6,8 +6,8 @@ import { Link } from "react-router-dom";
 
 const LINKS = [
   { icon: GitFork, title: "Repository", desc: "Source code for the orchestration + intelligence services", href: "https://github.com", external: true },
-  { icon: FileText, title: "Literature Survey", desc: "Comparative analysis of GraphRAG, G-Retriever & ROLAND", href: "/research", external: false },
-  { icon: BookOpen, title: "Backend architecture", desc: "Service split, data stores, reliability notes", href: "/architecture", external: false },
+  { icon: FileText, title: "Live Demo", desc: "Interactive knowledge graph with real-time chat and event stream", href: "/live-demo", external: false },
+  { icon: BookOpen, title: "API Reference", desc: "REST and gRPC contracts between the JS and Python services", href: "https://github.com", external: true },
 ];
 
 const STACK = [
