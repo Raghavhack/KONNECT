@@ -40,6 +40,12 @@ def init_pipeline(strict: bool = True) -> Dict[str, Any]:
     if strict:
         assert getattr(llm, "strict", False) is True, "LLMClient must be in strict mode (BENCH_STRICT_LLM=1)"
 
+    if "embedder" not in container:
+        container["embedder"] = container["query_engine"].embedder
+    if "settings" not in container:
+        from app.config import settings
+        container["settings"] = settings
+
     return container
 
 
@@ -132,7 +138,7 @@ def bootstrap_corpus(container: Dict[str, Any], docs: List[Any], k_hops: int = 2
             raw_text = p.read_text(encoding="utf-8", errors="ignore")
             lines = raw_text.splitlines()
             title = lines[0].strip() if lines else doc_id
-            text = "\n".join(lines[1:]).strip() if len(lines) > 1 else raw_text
+            text = raw_text
         elif isinstance(doc, dict):
             doc_id = doc.get("doc_id", "doc")
             title = doc.get("title", doc_id)

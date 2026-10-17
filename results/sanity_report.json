@@ -1,0 +1,62 @@
+[
+  {
+    "check": 10,
+    "name": "Eval and training splits share no documents or questions",
+    "status": "PASS",
+    "detail": "Shared QIDs: 0, Shared Document Slugs: 0 (strictly 0 required)"
+  },
+  {
+    "check": 3,
+    "name": "Checkpoint SHA-256 matches metadata and loads successfully",
+    "status": "PASS",
+    "detail": "Loaded=True, SHA256=5342a9193ef385b3... (matches train_summary: True)"
+  },
+  {
+    "check": 1,
+    "name": "Simulated LLM calls == 0 and fallback extraction count == 0",
+    "status": "PASS",
+    "detail": "simulated_calls=0, fallback_count=0, BENCH_STRICT_LLM=1"
+  },
+  {
+    "check": 2,
+    "name": "Neo4j is connected, not in-memory fallback",
+    "status": "FAIL",
+    "detail": "driver=None, is_connected=False"
+  },
+  {
+    "check": 9,
+    "name": "Temporal state_cache is cleanly emptied by reset_all",
+    "status": "PASS",
+    "detail": "roland_model.state_cache length after reset: 0 (expected 0)"
+  },
+  {
+    "check": 7,
+    "name": "k-hop neighborhood traversal yields expected frontier expansion (2, 3, 4)",
+    "status": "PASS",
+    "detail": "k=1: 2 nodes (expected 2), k=2: 3 nodes (expected 3), k=3: 4 nodes (expected 4)"
+  },
+  {
+    "check": 6,
+    "name": "After edit, answer-bearing entity updates and stale fact is pruned",
+    "status": "PASS",
+    "detail": "Initial Alice=True, Updated Bob=True, Stale Alice Removed=True"
+  },
+  {
+    "check": 4,
+    "name": "Residual readout maintains unit-norm alignment within 0.05",
+    "status": "PASS",
+    "detail": "Mean |cos(q, gnn) - cos(q, text)| = 0.0000 <= 0.05"
+  },
+  {
+    "check": 8,
+    "name": "Incremental update matches rebuilt graph parity thresholds",
+    "status": "PASS",
+    "detail": "Node Jaccard=1.0000 >= 0.90, Mean Embedding Cosine=1.0000 >= 0.95"
+  },
+  {
+    "check": 5,
+    "name": "Arms A, B, C, D produce distinct contexts for >= 80% of questions",
+    "status": "PASS",
+    "detail": "10/10 (100.0%) questions produced distinct arm contexts"
+  }
+]

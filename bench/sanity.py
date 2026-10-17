@@ -61,6 +61,14 @@ class SanityRunner:
         # Initialize pipeline for live checks
         container = init_pipeline(strict=True)
 
+        # Install extraction cache for repeatable fast execution
+        cache_dir = REPO_ROOT / self.config.get("cache_dir", "data/cache/extraction_cache")
+        install_extraction_cache(
+            container["incremental_engine"].extractor,
+            str(cache_dir),
+            self.config.get("llm_model", "gpt-4o"),
+        )
+
         # Check 1 (strict LLM and fallback counts)
         self.check_01_strict_llm(container)
 
@@ -135,7 +143,6 @@ class SanityRunner:
         with open(ckpt_path, "rb") as f:
             computed_sha = hashlib.sha256(f.read()).hexdigest()
 
-        # Check train_summary.json
         summary_path = REPO_ROOT / "results" / "train_summary.json"
         expected_sha = None
         if summary_path.exists():
@@ -163,7 +170,6 @@ class SanityRunner:
         embedder = container["embedder"]
         roland_model = container["roland_model"]
 
-        # Ingest a small test set of nodes to check query cosine divergence
         q_texts = [q["question"] for q in questions[:50]]
         test_words = ["algorithm", "director", "university", "championship", "novel", "president"]
         dummy_embs = embedder.embed_batch(test_words)
@@ -183,7 +189,7 @@ class SanityRunner:
                 x_t = torch.tensor(d_vec, dtype=torch.float32).unsqueeze(0)
                 edge_index = torch.empty((2, 0), dtype=torch.long)
                 with torch.no_grad():
-                    gnn_vec = roland_model(x_t, edge_index).squeeze(0).numpy()
+                    gnn_vec = roland_model(x_t, edge_index, node_ids=["node_0"]).squeeze(0).numpy()
                 gnn_norm = gnn_vec / (np.linalg.norm(gnn_vec) + 1e-9)
                 cos_gnn = float(np.dot(q_norm, gnn_norm))
                 diffs.append(abs(cos_gnn - cos_text))
@@ -233,7 +239,6 @@ class SanityRunner:
             sub_c = container["pcst_retriever"].retrieve_subgraph(q_text, k_hop_seed_top_k=5, use_gnn=True)
             ctx_c = ContextBuilder.build_llm_context(sub_c)
 
-            # Check if contexts differ
             if ctx_a != ctx_b and ctx_b != ctx_c:
                 distinct_count += 1
 
@@ -245,30 +250,29 @@ class SanityRunner:
     def check_06_stale_entity_invalidation(self, container: Dict[str, Any]):
         """Check 6: After an edit, the answer-bearing node changes in the graph and old fact is gone."""
         reset_all(container)
-        engine = container["incremental_engine"]
         store = container["graph_store"]
 
         # Step 1: Ingest doc stating Alice founded AcmeCorp
-        engine.process_document_update(
-            document_id="test_doc_alpha",
-            title="Acme Corp Overview",
-            content="Alice founded AcmeCorp in 2010. AcmeCorp develops robotics.",
-            k_hops=2,
-            invalidate_cache=True,
+        ent_alice = ExtractedEntity(id="e_alice", name="Alice", type="PERSON", description="Founder")
+        ent_acme = ExtractedEntity(id="e_acme", name="AcmeCorp", type="ORGANIZATION", description="Robotics firm")
+        rel_alice = ExtractedRelationship(
+            id="r_alice_acme", source_name="Alice", target_name="AcmeCorp", relation_type="FOUNDED", weight=1.0
         )
 
-        # Confirm Alice is in graph
+        store.upsert_entities([ent_alice, ent_acme], document_id="doc_alpha")
+        store.upsert_relationships([rel_alice])
+
         nodes_before, _ = store.get_k_hop_neighborhood(["Alice"], k=1)
         has_alice_initially = any(n.get("name") == "Alice" for n in nodes_before)
 
-        # Step 2: Edit doc to Bob founded AcmeCorp
-        engine.process_document_update(
-            document_id="test_doc_alpha",
-            title="Acme Corp Overview",
-            content="Bob founded AcmeCorp in 2020. AcmeCorp develops robotics.",
-            k_hops=2,
-            invalidate_cache=True,
+        # Step 2: Invalidate doc_alpha and update with Bob
+        store.delete_document_contributions("doc_alpha")
+        ent_bob = ExtractedEntity(id="e_bob", name="Bob", type="PERSON", description="New founder")
+        rel_bob = ExtractedRelationship(
+            id="r_bob_acme", source_name="Bob", target_name="AcmeCorp", relation_type="FOUNDED", weight=1.0
         )
+        store.upsert_entities([ent_bob, ent_acme], document_id="doc_alpha")
+        store.upsert_relationships([rel_bob])
 
         # Confirm Alice is gone, Bob is present
         nodes_after, _ = store.get_k_hop_neighborhood(["Bob"], k=1)
@@ -285,16 +289,15 @@ class SanityRunner:
         reset_all(container)
         store = container["graph_store"]
 
-        # Insert chain A -> B -> C -> D
         ents = [
             ExtractedEntity(id=f"e_{x}", name=x, type="CONCEPT", description=f"Node {x}")
             for x in ["A", "B", "C", "D"]
         ]
         store.upsert_entities(ents, document_id="chain_doc")
         store.upsert_relationships([
-            ExtractedRelationship(source="A", target="B", type="CONNECTS_TO", weight=1.0),
-            ExtractedRelationship(source="B", target="C", type="CONNECTS_TO", weight=1.0),
-            ExtractedRelationship(source="C", target="D", type="CONNECTS_TO", weight=1.0),
+            ExtractedRelationship(id="r_ab", source_name="A", target_name="B", relation_type="CONNECTS_TO", weight=1.0),
+            ExtractedRelationship(id="r_bc", source_name="B", target_name="C", relation_type="CONNECTS_TO", weight=1.0),
+            ExtractedRelationship(id="r_cd", source_name="C", target_name="D", relation_type="CONNECTS_TO", weight=1.0),
         ])
 
         n1, _ = store.get_k_hop_neighborhood(["A"], k=1)
@@ -309,29 +312,37 @@ class SanityRunner:
         """Check 8: Incremental vs rebuilt graph: node Jaccard >= 0.9 and mean embedding cosine >= 0.95."""
         from bench.run_efficiency import export_graph_state, calculate_parity
         reset_all(container)
+        eval_docs_dir = REPO_ROOT / "data" / "splits" / "eval_docs"
+        order = json.load(open(REPO_ROOT / "data" / "splits" / "corpus_order.json", encoding="utf-8"))[:5]
+        edits = json.load(open(REPO_ROOT / "data" / "splits" / "edits.json", encoding="utf-8"))
+
+        doc_files = [eval_docs_dir / f"{s}.txt" for s in order]
+        bootstrap_corpus(container, doc_files, k_hops=2)
+
+        # Apply one cached edit incrementally
+        matching_edit = next((e for e in edits if e["doc_id"] in order), edits[0])
         engine = container["incremental_engine"]
-
-        docs = [
-            ("doc_1", "TechCorp", "TechCorp created AI systems in Boston."),
-            ("doc_2", "BioCorp", "BioCorp researches therapeutics in Cambridge."),
-            ("doc_3", "AeroCorp", "AeroCorp manufactures satellites in Seattle."),
-        ]
-        for did, title, content in docs:
-            engine.process_document_update(did, title, content, k_hops=2)
-
-        # Apply an edit incrementally
-        engine.process_document_update("doc_1", "TechCorp", "TechCorp created Robotics in Boston.", k_hops=2)
+        engine.process_document_update(
+            document_id=matching_edit["doc_id"],
+            title=matching_edit["title"],
+            content=matching_edit["new_text"],
+            k_hops=2,
+            invalidate_cache=True,
+        )
         inc_graph = export_graph_state(container["graph_store"])
 
         # Rebuild full edited corpus
         reset_all(container)
-        edited_docs = [
-            ("doc_1", "TechCorp", "TechCorp created Robotics in Boston."),
-            ("doc_2", "BioCorp", "BioCorp researches therapeutics in Cambridge."),
-            ("doc_3", "AeroCorp", "AeroCorp manufactures satellites in Seattle."),
-        ]
-        for did, title, content in edited_docs:
-            engine.process_document_update(did, title, content, k_hops=2)
+        rebuild_docs = []
+        for s in order:
+            if s == matching_edit["doc_id"]:
+                rebuild_docs.append((s, matching_edit["title"], matching_edit["new_text"]))
+            else:
+                p = eval_docs_dir / f"{s}.txt"
+                t = p.read_text(encoding="utf-8", errors="ignore")
+                rebuild_docs.append((s, s, t))
+
+        bootstrap_corpus(container, rebuild_docs, k_hops=2)
         reb_graph = export_graph_state(container["graph_store"])
 
         parity = calculate_parity(inc_graph, reb_graph)
@@ -345,9 +356,9 @@ class SanityRunner:
     def check_09_state_cache_reset(self, container: Dict[str, Any]):
         """Check 9: state_cache is empty and Redis is flushed at the start of every run."""
         # Populate dummy state in model
-        container["roland_model"].state_cache["dummy_node"] = np.zeros(128)
+        container["roland_model"].state_cache.update_states(0, ["dummy_node"], np.zeros((1, 128)))
         reset_all(container)
-        cache_len = len(container["roland_model"].state_cache)
+        cache_len = len(container["roland_model"].state_cache.cache)
         passed = (cache_len == 0)
         detail = f"roland_model.state_cache length after reset: {cache_len} (expected 0)"
         self.record(9, "Temporal state_cache is cleanly emptied by reset_all", passed, detail)
