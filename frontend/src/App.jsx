@@ -4,12 +4,7 @@ import Layout from "./components/shared/Layout";
 import { AuthProvider } from "./context/AuthContext";
 
 const Home = lazy(() => import("./pages/Home"));
-const HowItWorks = lazy(() => import("./pages/HowItWorks"));
-const Architecture = lazy(() => import("./pages/Architecture"));
 const LiveDemo = lazy(() => import("./pages/LiveDemo"));
-const Research = lazy(() => import("./pages/Research"));
-const Results = lazy(() => import("./pages/Results"));
-const Team = lazy(() => import("./pages/Team"));
 const Docs = lazy(() => import("./pages/Docs"));
 const Login = lazy(() => import("./pages/Login"));
 const Signup = lazy(() => import("./pages/Signup"));
@@ -29,14 +24,12 @@ export default function App() {
       <BrowserRouter>
         <Suspense fallback={<PageLoader />}>
           <Routes>
+            {/* Full-viewport routes — no shared Navbar/Footer */}
+            <Route path="/live-demo" element={<LiveDemo />} />
+
+            {/* Marketing routes — wrapped in shared Layout */}
             <Route element={<Layout />}>
               <Route path="/" element={<Home />} />
-              <Route path="/how-it-works" element={<HowItWorks />} />
-              <Route path="/architecture" element={<Architecture />} />
-              <Route path="/live-demo" element={<LiveDemo />} />
-              <Route path="/research" element={<Research />} />
-              <Route path="/results" element={<Results />} />
-              <Route path="/team" element={<Team />} />
               <Route path="/docs" element={<Docs />} />
               <Route path="/login" element={<Login />} />
               <Route path="/signup" element={<Signup />} />

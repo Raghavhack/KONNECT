@@ -4,13 +4,11 @@ import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
   Zap,
-  PlusCircle,
-  Info,
+  PlusSquare,
   Sparkles,
   Server,
   Lock,
   ArrowRight,
-  ArrowLeft,
   Terminal,
   Activity,
   CheckCircle2,
@@ -18,19 +16,16 @@ import {
   Cloud,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
-import { fadeUp, stagger } from "../lib/motion";
-import Tag from "../components/shared/Tag";
-import AppWindowMock from "../components/shared/AppWindowMock";
 import GraphCanvas from "../components/shared/GraphCanvas";
+import {
+  healthCheck,
+  sendQuery,
+  triggerEdit,
+  streamEvents,
+  createConversation,
+} from "../api/mockApi";
 
-const SCRIPTED_EVENTS = [
-  { tag: "WEBHOOK", text: "Drive push: Onboarding Guide.md (rev 14b)", time: "12:44:01" },
-  { tag: "QUEUE", text: "Debounced 3 rapid keystroke saves into job #819", time: "12:44:01" },
-  { tag: "PARSER", text: "FastAPI parsed AST: +6 entities, +4 relations", time: "12:44:02" },
-  { tag: "NEO4J", text: "Cypher MERGE: Patched 6 nodes, 9 edges in 8ms", time: "12:44:02" },
-  { tag: "GNN-GRU", text: "ROLAND GRU re-embedded 2-hop neighbourhood (142 nodes)", time: "12:44:03" },
-  { tag: "CACHE", text: "Semantic cache invalidated 2 dependent query hashes", time: "12:44:03" },
-];
+// ─── Constants ────────────────────────────────────────────────────────────────
 
 const PRESET_QUERIES = [
   "What changed in the onboarding doc?",
@@ -39,68 +34,228 @@ const PRESET_QUERIES = [
   "Who last edited Architecture.pdf?",
 ];
 
-const KNOWLEDGE_BASE_RESPONSES = {
-  "what changed in the onboarding doc?": {
-    text: "The Access & Permissions and Rollout Checklist sections were revised in Onboarding Guide.md. 3 entities were patched.",
-    citations: ["root", "e1", "e2"],
-  },
-  "which entities connect to authservice?": {
-    text: "AuthService connects to SessionStore, OAuthProvider, and UserCluster via authenticated gRPC streaming channels.",
-    citations: ["e1", "e3"],
-  },
-  "show pcst subgraph for permissions": {
-    text: "The Prize-Collecting Steiner Tree solver extracted a minimal connected subgraph linking UserRole, PermissionGate, and VaultToken with total prize weight 4.82.",
-    citations: ["root", "e1", "e3"],
-  },
-  "who last edited architecture.pdf?": {
-    text: "Architecture.pdf was committed by Raghav Rastogi 42 minutes ago, touching the gRPC transport spec and Neo4j schema definitions.",
-    citations: ["root", "e2"],
-  },
+const INITIAL_NODES = [
+  { id: "root", kind: "Doc", label: "Onboarding.md", x: 320, y: 210 },
+  { id: "e1", kind: "Entity", label: "AuthService", x: 240, y: 150 },
+  { id: "e2", kind: "Person", label: "Raghav", x: 400, y: 270 },
+  { id: "e3", kind: "Topic", label: "PCST Subgraph", x: 420, y: 120 },
+];
+
+const INITIAL_LINKS = [
+  { source: "root", target: "e1" },
+  { source: "root", target: "e2" },
+  { source: "e1", target: "e3" },
+];
+
+const BADGE_COLORS = {
+  WEBHOOK: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
+  QUEUE: "bg-sky-500/15 text-sky-400 border-sky-500/30",
+  NEO4J: "bg-amber-400/15 text-amber-400 border-amber-400/30",
+  "GNN-GRU": "bg-purple-500/15 text-purple-400 border-purple-500/30",
+  PCST: "bg-yellow-400/15 text-yellow-300 border-yellow-400/30",
+  QUERY: "bg-yellow-400/15 text-yellow-300 border-yellow-400/30",
+  PARSER: "bg-teal-400/15 text-teal-300 border-teal-400/30",
+  LLM: "bg-pink-400/15 text-pink-300 border-pink-400/30",
+  CACHE: "bg-indigo-400/15 text-indigo-300 border-indigo-400/30",
+  CONNECTED: "bg-emerald-500/15 text-emerald-400 border-emerald-500/30",
 };
 
-export default function LiveDemo() {
-  const [searchParams] = useSearchParams();
-  const initialQuery = searchParams.get("q") || "";
-  const { isAuthenticated, user, loginAsDemo } = useAuth();
+const getBadgeColor = (tag) =>
+  BADGE_COLORS[tag] ?? "bg-white/10 text-white/50 border-white/10";
 
+// ─── Sub-components ───────────────────────────────────────────────────────────
+
+function TypingIndicator() {
+  return (
+    <div className="mr-auto flex max-w-[80%] items-center gap-3 rounded-2xl rounded-tl-sm border border-black/8 bg-white px-4 py-3.5 shadow-sm">
+      <div className="flex items-center gap-1.5">
+        <span className="h-2 w-2 animate-bounce rounded-full bg-amber-400 [animation-delay:0ms]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-amber-400 [animation-delay:150ms]" />
+        <span className="h-2 w-2 animate-bounce rounded-full bg-amber-400 [animation-delay:300ms]" />
+      </div>
+      <span className="text-xs text-body-500">KONNECT is thinking…</span>
+    </div>
+  );
+}
+
+function MessageBubble({ message, onCitationClick }) {
+  const isUser = message.role === "user";
+
+  if (isUser) {
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ duration: 0.2 }}
+        className="ml-auto flex max-w-[78%] flex-col"
+      >
+        <div className="rounded-2xl rounded-tr-sm bg-amber-400 px-4 py-3 text-sm leading-relaxed text-ink-950 shadow-sm">
+          {message.text}
+        </div>
+      </motion.div>
+    );
+  }
+
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 10 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.25 }}
+      className="mr-auto flex max-w-[82%] flex-col gap-2"
+    >
+      {/* AI badge */}
+      <div className="flex items-center gap-1.5">
+        <span className="flex h-5 w-5 items-center justify-center rounded-full bg-amber-400 text-[9px] font-bold text-ink-950">
+          K
+        </span>
+        <span className="text-[10px] font-semibold text-body-500">KONNECT AI</span>
+      </div>
+
+      {/* Bubble */}
+      <div className="rounded-2xl rounded-tl-sm border border-black/8 bg-white px-4 py-3.5 text-sm leading-relaxed text-ink-950 shadow-sm">
+        {/* Render simple markdown-like bold */}
+        <p className="whitespace-pre-wrap">{formatText(message.text)}</p>
+
+        {/* Citations */}
+        {message.citations && message.citations.length > 0 && (
+          <div className="mt-3 flex flex-wrap items-center gap-1.5 border-t border-black/5 pt-2.5">
+            <span className="text-[10px] text-body-500">Sources:</span>
+            {message.citations.map((c) => (
+              <button
+                key={c.id}
+                onClick={() => onCitationClick(c.id)}
+                className="flex items-center gap-1 rounded-md bg-amber-400/15 px-2 py-0.5 text-[10px] font-medium text-amber-700 transition hover:bg-amber-400 hover:text-ink-950"
+              >
+                <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                {c.label}
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+    </motion.div>
+  );
+}
+
+// Very lightweight text formatter: **bold** → <strong>
+function formatText(text) {
+  if (!text.includes("**")) return text;
+  const parts = text.split(/(\*\*[^*]+\*\*)/g);
+  return parts.map((p, i) =>
+    p.startsWith("**") && p.endsWith("**") ? (
+      <strong key={i} className="font-semibold text-ink-950">
+        {p.slice(2, -2)}
+      </strong>
+    ) : (
+      p
+    )
+  );
+}
+
+function WelcomeState({ onPreset }) {
+  return (
+    <div className="flex flex-1 flex-col items-center justify-center gap-8 px-6 py-12">
+      <div className="flex flex-col items-center gap-4 text-center">
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-amber-400 text-2xl font-bold text-ink-950 shadow-md">
+          K
+        </div>
+        <div>
+          <h2 className="text-xl font-semibold tracking-tight text-ink-950">
+            Ask KONNECT anything
+          </h2>
+          <p className="mt-1.5 max-w-sm text-sm text-body-500 leading-relaxed">
+            Queries are grounded in your live knowledge graph — every answer
+            cites the exact source nodes.
+          </p>
+        </div>
+      </div>
+
+      {/* Preset chips */}
+      <div className="grid w-full max-w-lg grid-cols-1 gap-2 sm:grid-cols-2">
+        {PRESET_QUERIES.map((q) => (
+          <button
+            key={q}
+            onClick={() => onPreset(q)}
+            className="flex items-start gap-2.5 rounded-xl border border-black/8 bg-white px-4 py-3 text-left text-sm text-ink-950 shadow-sm transition hover:border-amber-400/60 hover:bg-amber-400/5 hover:shadow-md"
+          >
+            <Sparkles size={14} className="mt-0.5 shrink-0 text-amber-500" />
+            <span className="leading-snug">{q}</span>
+          </button>
+        ))}
+      </div>
+    </div>
+  );
+}
+
+// ─── Auth gate overlay ─────────────────────────────────────────────────────────
+
+function AuthGate({ onDemo }) {
+  return (
+    <div className="absolute inset-0 z-40 flex items-center justify-center bg-parchment-50/80 backdrop-blur-md">
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95, y: 12 }}
+        animate={{ opacity: 1, scale: 1, y: 0 }}
+        transition={{ duration: 0.3, ease: "easeOut" }}
+        className="w-full max-w-sm rounded-3xl border border-black/10 bg-white p-8 shadow-2xl"
+      >
+        <div className="mx-auto mb-5 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/20 text-amber-600">
+          <Lock size={22} />
+        </div>
+
+        <h2 className="text-center text-xl font-bold tracking-tight text-ink-950">
+          Sign in to continue
+        </h2>
+        <p className="mt-2 text-center text-xs leading-relaxed text-body-500">
+          The interactive knowledge graph and chat require an active session.
+          Try it instantly with 1-Click Demo access.
+        </p>
+
+        <div className="mt-6 flex flex-col gap-2.5">
+          <button
+            onClick={onDemo}
+            className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 py-3 text-sm font-semibold text-ink-950 shadow transition hover:bg-amber-500"
+          >
+            <Sparkles size={15} />
+            1-Click Instant Demo Access
+          </button>
+
+          <div className="grid grid-cols-2 gap-2">
+            <Link
+              to="/login?redirect=/live-demo"
+              className="flex items-center justify-center gap-1 rounded-xl border border-black/10 py-2.5 text-xs font-medium text-ink-950 transition hover:bg-black/5"
+            >
+              Sign in
+            </Link>
+            <Link
+              to="/signup?redirect=/live-demo"
+              className="flex items-center justify-center gap-1 rounded-xl bg-ink-950 py-2.5 text-xs font-medium text-parchment-50 transition hover:bg-ink-800"
+            >
+              Create account <ArrowRight size={11} />
+            </Link>
+          </div>
+        </div>
+
+        <p className="mt-5 flex items-center justify-center gap-1.5 text-[10px] text-body-500">
+          <ShieldCheck size={12} className="text-emerald-500" />
+          Zero setup · Pre-populated demo knowledge base
+        </p>
+      </motion.div>
+    </div>
+  );
+}
+
+// ─── Graph + Terminal panel ────────────────────────────────────────────────────
+
+function GraphPanel({ highlightedNodes, onClose }) {
   const [log, setLog] = useState([
-    { tag: "SYSTEM", text: "KONNECT Knowledge Ingestion Stream ready", time: "12:40:00" },
-    { tag: "CONNECTED", text: "Listening on Redis channel: gRPC graph-delta-stream", time: "12:40:01" },
+    { tag: "SYSTEM", text: "Knowledge ingestion stream ready", time: "12:40:00" },
+    { tag: "CONNECTED", text: "Listening on gRPC graph-delta-stream", time: "12:40:01" },
   ]);
-  const [chat, setChat] = useState([
-    {
-      role: "assistant",
-      text: "Hello! I am KONNECT's live knowledge assistant. Ask questions grounded in your Drive, Notion, and Slack workspace.",
-      citations: [],
-    },
-  ]);
-  const [inputMessage, setInputMessage] = useState("");
+  const [terminalTab, setTerminalTab] = useState("stream");
   const [selectedNode, setSelectedNode] = useState(null);
-  const [highlightedNodes, setHighlightedNodes] = useState([]);
-  const [backendStatus, setBackendStatus] = useState("checking");
-  const [terminalTab, setTerminalTab] = useState("event-stream");
   const logEndRef = useRef(null);
-  const chatEndRef = useRef(null);
-
-  // Initial nodes for GraphCanvas
-  const initialNodes = useMemo(
-    () => [
-      { id: "root", kind: "Doc", label: "Onboarding.md", x: 320, y: 210 },
-      { id: "e1", kind: "Entity", label: "AuthService", x: 240, y: 150 },
-      { id: "e2", kind: "Person", label: "Raghav", x: 400, y: 270 },
-      { id: "e3", kind: "Topic", label: "PCST Subgraph", x: 420, y: 120 },
-    ],
-    []
-  );
-
-  const initialLinks = useMemo(
-    () => [
-      { source: "root", target: "e1" },
-      { source: "root", target: "e2" },
-      { source: "e1", target: "e3" },
-    ],
-    []
-  );
+  const initialNodes = useMemo(() => INITIAL_NODES, []);
+  const initialLinks = useMemo(() => INITIAL_LINKS, []);
 
   const [onedriveStatus, setOnedriveStatus] = useState({ connected: false });
 
@@ -119,71 +274,281 @@ export default function LiveDemo() {
       .catch(() => {});
   }, []);
 
-  // Periodic simulated events
-  useEffect(() => {
-    if (!isAuthenticated) return;
-    let i = 0;
-    const interval = setInterval(() => {
-      const ev = SCRIPTED_EVENTS[i % SCRIPTED_EVENTS.length];
-      const now = new Date().toLocaleTimeString();
-      setLog((prev) => [...prev.slice(-15), { ...ev, time: now }]);
-      i++;
-    }, 3200);
-    return () => clearInterval(interval);
-  }, [isAuthenticated]);
-
-  // Auto-scroll log
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [log]);
 
-  // Auto-scroll chat
-  useEffect(() => {
-    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [chat]);
+  const handleTriggerEdit = async () => {
+    const result = await triggerEdit();
+    const now = new Date().toLocaleTimeString();
+    setLog((prev) => [
+      ...prev.slice(-20),
+      ...result.logEvents.map((e) => ({ ...e, time: now })),
+    ]);
+  };
 
-  // Handle query parameter from Home hero
+  return (
+    <div className="flex h-full flex-col border-l border-black/8 bg-[#0E0E10]">
+      {/* Panel header */}
+      <div className="flex items-center justify-between border-b border-white/10 bg-[#141519] px-4 py-3">
+        <div className="flex items-center gap-2">
+          <Network size={14} className="text-amber-400" />
+          <span className="text-xs font-semibold text-parchment-50">Knowledge Graph</span>
+        </div>
+        <button
+          onClick={onClose}
+          className="flex h-6 w-6 items-center justify-center rounded-md text-white/40 transition hover:bg-white/10 hover:text-white"
+        >
+          <X size={13} />
+        </button>
+      </div>
+
+      {/* Graph canvas */}
+      <div className="relative h-[240px] shrink-0 border-b border-white/10 bg-[#101114]">
+        <GraphCanvas
+          live
+          initialNodes={initialNodes}
+          initialLinks={initialLinks}
+          highlightedNodeIds={highlightedNodes}
+          onSelectNode={setSelectedNode}
+          selectedNodeId={selectedNode?.id}
+        />
+      </div>
+
+      {/* Selected node detail */}
+      <AnimatePresence>
+        {selectedNode && (
+          <motion.div
+            initial={{ opacity: 0, y: -4 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -4 }}
+            className="border-b border-white/10 bg-amber-400/10 px-4 py-2.5"
+          >
+            <p className="text-[11px] font-semibold text-amber-400">
+              {selectedNode.label || selectedNode.id}
+            </p>
+            <p className="text-[10px] text-white/50">
+              {selectedNode.kind} · ROLAND GRU Synced
+            </p>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Terminal */}
+      <div className="flex flex-1 flex-col overflow-hidden">
+        {/* Terminal tabs + trigger */}
+        <div className="flex items-center justify-between border-b border-white/10 bg-[#141519] px-3 py-2">
+          <div className="flex items-center gap-1">
+            <button
+              onClick={() => setTerminalTab("stream")}
+              className={`flex items-center gap-1 rounded px-2 py-1 font-mono text-[10px] transition ${
+                terminalTab === "stream"
+                  ? "bg-white/15 text-white"
+                  : "text-white/40 hover:text-white"
+              }`}
+            >
+              <Terminal size={10} /> event-stream
+            </button>
+            <button
+              onClick={() => setTerminalTab("cypher")}
+              className={`flex items-center gap-1 rounded px-2 py-1 font-mono text-[10px] transition ${
+                terminalTab === "cypher"
+                  ? "bg-white/15 text-white"
+                  : "text-white/40 hover:text-white"
+              }`}
+            >
+              <Activity size={10} /> neo4j.cypher
+            </button>
+          </div>
+          <div className="flex items-center gap-2">
+            <span className="flex items-center gap-1 font-mono text-[9px] text-emerald-400">
+              <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-emerald-400" />
+              LIVE
+            </span>
+            <button
+              onClick={handleTriggerEdit}
+              className="flex items-center gap-1 rounded-full bg-amber-400/20 px-2 py-0.5 text-[10px] font-semibold text-amber-400 ring-1 ring-amber-400/30 transition hover:bg-amber-400 hover:text-ink-950"
+            >
+              <PlusCircle size={10} /> Trigger Edit
+            </button>
+          </div>
+        </div>
+
+        {/* Log body */}
+        <div className="flex-1 overflow-y-auto p-3 font-mono text-[10px] leading-relaxed no-scrollbar">
+          {terminalTab === "stream" ? (
+            <div className="space-y-1.5">
+              {log.map((entry, idx) => (
+                <div key={idx} className="flex items-start gap-1.5">
+                  <span className="shrink-0 text-white/25">{String(idx + 1).padStart(2, "0")}</span>
+                  <span className="shrink-0 text-white/40">{entry.time}</span>
+                  <span
+                    className={`shrink-0 rounded border px-1 py-0.5 text-[8px] font-bold ${getBadgeColor(entry.tag)}`}
+                  >
+                    {entry.tag}
+                  </span>
+                  <span className="text-white/70">{entry.text}</span>
+                </div>
+              ))}
+              <div ref={logEndRef} />
+            </div>
+          ) : (
+            <div className="space-y-1.5 text-sky-300">
+              <p className="text-white/40">// Neo4j GDS — active patch queue</p>
+              <p>{"MATCH (d:Doc {id: $docId})-[r:MENTIONS]->(e:Entity)"}</p>
+              <p>{"WHERE e.lastSynced < datetime($timestamp)"}</p>
+              <p>{"MERGE (d)-[:UPDATED_AT]->(t:Timestamp {val: $timestamp})"}</p>
+              <p className="text-amber-400">{">"} Committed 6 node state updates via bolt://localhost:7687</p>
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+// ─── Main component ────────────────────────────────────────────────────────────
+
+export default function LiveDemo() {
+  const [searchParams] = useSearchParams();
+  const initialQuery = searchParams.get("q") || "";
+  const navigate = useNavigate();
+  const { isAuthenticated, user, loginAsDemo, logout } = useAuth();
+
+  // Conversations
+  const [conversations, setConversations] = useState([]);
+  const [activeConvId, setActiveConvId] = useState(null);
+
+  // Messages keyed by conversation id
+  const [messagesByConv, setMessagesByConv] = useState({});
+
+  // UI state
+  const [inputValue, setInputValue] = useState("");
+  const [isLoading, setIsLoading] = useState(false);
+  const [highlightedNodes, setHighlightedNodes] = useState([]);
+  const [graphOpen, setGraphOpen] = useState(true);
+  const [backendStatus, setBackendStatus] = useState("checking");
+
+  const chatEndRef = useRef(null);
+  const inputRef = useRef(null);
+
+  const activeMessages = messagesByConv[activeConvId] ?? [];
+
+  // ── Init ────────────────────────────────────────────────────────────────────
+
+  // Health check
   useEffect(() => {
-    if (initialQuery && isAuthenticated) {
-      handleSendMessage(initialQuery);
+    healthCheck().then((r) => setBackendStatus(r.status));
+  }, []);
+
+  // Bootstrap first conversation when authenticated
+  useEffect(() => {
+    if (!isAuthenticated) return;
+    if (conversations.length > 0) return;
+
+    createConversation().then((conv) => {
+      setConversations([conv]);
+      setActiveConvId(conv.id);
+      setMessagesByConv({
+        [conv.id]: [
+          {
+            role: "assistant",
+            text: "Hello! I'm KONNECT's knowledge assistant. I can answer questions grounded in your connected workspace — Google Drive, Notion, and Slack. Ask me anything.",
+            citations: [],
+          },
+        ],
+      });
+    });
+  }, [isAuthenticated, conversations.length]);
+
+  // Handle pre-filled query from homepage
+  useEffect(() => {
+    if (initialQuery && isAuthenticated && activeConvId) {
+      handleSend(initialQuery);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [initialQuery, isAuthenticated]);
+  }, [initialQuery, isAuthenticated, activeConvId]);
 
-  const handleSendMessage = (textToSend) => {
-    const queryText = (textToSend || inputMessage).trim();
-    if (!queryText) return;
+  // Auto-scroll
+  useEffect(() => {
+    chatEndRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [activeMessages, isLoading]);
 
-    // Add user question
-    setChat((prev) => [...prev, { role: "user", text: queryText }]);
-    setInputMessage("");
+  // ── Actions ─────────────────────────────────────────────────────────────────
 
-    // Look up answer or generate one
-    const normalized = queryText.toLowerCase();
-    const matched =
-      KNOWLEDGE_BASE_RESPONSES[normalized] || {
-        text: `Retrieved grounded subgraph for: "${queryText}". Bounded GNN search returned 1 connected cluster citing 2 documents.`,
-        citations: ["root", "e1"],
-      };
+  const handleSend = useCallback(
+    async (textOverride) => {
+      const text = (textOverride ?? inputValue).trim();
+      if (!text || isLoading || !activeConvId) return;
 
-    const time = new Date().toLocaleTimeString();
-    setLog((prev) => [
-      ...prev.slice(-15),
-      { tag: "QUERY", text: `PCST solver received: "${queryText.slice(0, 28)}..."`, time },
-      { tag: "PCST", text: "Retrieved minimal connected reasoning tree (0.94 score)", time },
-    ]);
+      setInputValue("");
+      setIsLoading(true);
 
-    setTimeout(() => {
-      setChat((prev) => [
+      // Append user message
+      setMessagesByConv((prev) => ({
         ...prev,
+        [activeConvId]: [...(prev[activeConvId] ?? []), { role: "user", text }],
+      }));
+
+      // Update conversation title from first user message
+      setConversations((prev) =>
+        prev.map((c) =>
+          c.id === activeConvId && c.title === "New conversation"
+            ? { ...c, title: text.slice(0, 40) }
+            : c
+        )
+      );
+
+      try {
+        const res = await sendQuery(text, activeConvId);
+        setMessagesByConv((prev) => ({
+          ...prev,
+          [activeConvId]: [
+            ...(prev[activeConvId] ?? []),
+            {
+              role: "assistant",
+              text: res.answer,
+              citations: res.citations,
+            },
+          ],
+        }));
+        setHighlightedNodes(res.citations.map((c) => c.id));
+        setTimeout(() => setHighlightedNodes([]), 3000);
+      } catch {
+        setMessagesByConv((prev) => ({
+          ...prev,
+          [activeConvId]: [
+            ...(prev[activeConvId] ?? []),
+            {
+              role: "assistant",
+              text: "Something went wrong. Please try again.",
+              citations: [],
+            },
+          ],
+        }));
+      } finally {
+        setIsLoading(false);
+        inputRef.current?.focus();
+      }
+    },
+    [inputValue, isLoading, activeConvId]
+  );
+
+  const handleNewConversation = async () => {
+    const conv = await createConversation();
+    setConversations((prev) => [conv, ...prev]);
+    setActiveConvId(conv.id);
+    setMessagesByConv((prev) => ({
+      ...prev,
+      [conv.id]: [
         {
           role: "assistant",
-          text: matched.text,
-          citations: matched.citations,
+          text: "New conversation started. What would you like to know?",
+          citations: [],
         },
-      ]);
-      setHighlightedNodes(matched.citations);
-    }, 600);
+      ],
+    }));
+    inputRef.current?.focus();
   };
 
   const handleSimulateEdit = () => {
@@ -226,49 +591,28 @@ export default function LiveDemo() {
     setTimeout(() => setHighlightedNodes([]), 2000);
   };
 
-  const getBadgeColor = (tag) => {
-    switch (tag) {
-      case "WEBHOOK":
-        return "bg-emerald-500/15 text-emerald-400 border-emerald-500/30";
-      case "QUEUE":
-        return "bg-sky-500/15 text-sky-400 border-sky-500/30";
-      case "NEO4J":
-        return "bg-amber-400/15 text-amber-400 border-amber-400/30";
-      case "GNN-GRU":
-        return "bg-purple-500/15 text-purple-400 border-purple-500/30";
-      case "PCST":
-      case "QUERY":
-        return "bg-yellow-400/15 text-yellow-300 border-yellow-400/30";
-      default:
-        return "bg-white/10 text-body-300 border-white/10";
+  const handleKeyDown = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      handleSend();
     }
   };
 
-  return (
-    <div className="mx-auto max-w-6xl px-6 pb-28 pt-28 md:pt-36">
-      {/* Top Breadcrumb navigation */}
-      <div className="mb-6 flex items-center justify-between text-xs">
-        <Link
-          to="/"
-          className="inline-flex items-center gap-1.5 font-medium text-body-500 hover:text-ink-950 transition"
-        >
-          <ArrowLeft size={14} /> Back to Home
-        </Link>
-        <span className="text-body-500 font-mono">KONNECT Workspace &rsaquo; Live Demo</span>
-      </div>
+  const handleDemoLogin = () => {
+    loginAsDemo();
+  };
 
-      {/* Header section */}
-      <motion.div initial="hidden" animate="show" variants={stagger(0.1)} className="text-center">
-        <motion.div variants={fadeUp} className="flex flex-wrap items-center justify-center gap-3">
-          <Tag color="amber">
-            <Zap size={12} /> Live demo
-          </Tag>
-          <span
-            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-xs font-medium ${
-              backendStatus === "connected"
-                ? "bg-emerald-500/10 text-emerald-600 ring-1 ring-emerald-500/30"
-                : "bg-black/5 text-body-500 ring-1 ring-black/10"
-            }`}
+  // ── Render ──────────────────────────────────────────────────────────────────
+
+  return (
+    <div className="fixed inset-0 flex bg-parchment-50">
+      {/* ── Sidebar ───────────────────────────────────────────────────────── */}
+      <aside className="flex w-60 shrink-0 flex-col border-r border-black/8 bg-ink-950 lg:w-64">
+        {/* Brand */}
+        <div className="flex items-center justify-between px-4 py-4">
+          <button
+            onClick={() => navigate("/")}
+            className="flex items-center gap-2 text-sm font-semibold text-parchment-50 transition hover:opacity-80"
           >
             <Server size={12} />
             {backendStatus === "connected" ? "Backend Connected (Port 5000)" : "Simulated Local Orchestration"}
@@ -292,294 +636,219 @@ export default function LiveDemo() {
             <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 ring-1 ring-emerald-500/30">
               <CheckCircle2 size={12} /> Authenticated: {user?.name}
             </span>
-          )}
-        </motion.div>
-
-        <motion.h1 variants={fadeUp} className="mt-4 text-3xl font-bold tracking-tight text-ink-950 md:text-5xl">
-          Edit a document. Watch it propagate.
-        </motion.h1>
-
-        <motion.p variants={fadeUp} className="mx-auto mt-4 max-w-2xl text-sm leading-relaxed text-body-500">
-          The force-directed graph synchronizes live across Drive, Notion, and Slack. Ask queries grounded
-          in the graph, inspect individual entities, and monitor incremental updates.
-        </motion.p>
-      </motion.div>
-
-      {/* Main Workspace Area with Protected Auth Wall */}
-      <div className="relative mt-10">
-        {/* If user is not authenticated: Show beautiful frosted-glass Gate */}
-        {!isAuthenticated && (
-          <div className="absolute inset-0 z-30 flex flex-col items-center justify-center rounded-3xl bg-white/70 backdrop-blur-md p-6 text-center shadow-2xl ring-1 ring-black/10">
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95, y: 10 }}
-              animate={{ opacity: 1, scale: 1, y: 0 }}
-              transition={{ duration: 0.3 }}
-              className="w-full max-w-md rounded-3xl border border-black/10 bg-white p-8 shadow-2xl"
-            >
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/20 text-amber-600">
-                <Lock size={24} />
-              </div>
-
-              <h2 className="text-xl font-bold tracking-tight text-ink-950 md:text-2xl">
-                Sign in to access Live Demo
-              </h2>
-
-              <p className="mt-2 text-xs leading-relaxed text-body-500">
-                The interactive knowledge graph and streaming orchestration engine require an active
-                session. You can test it immediately using 1-Click Demo access.
-              </p>
-
-              <div className="mt-6 space-y-3">
-                <button
-                  onClick={loginAsDemo}
-                  className="flex w-full items-center justify-center gap-2 rounded-2xl bg-amber-400 py-3 text-sm font-semibold text-ink-950 shadow-md transition hover:bg-amber-500"
-                >
-                  <Sparkles size={16} />
-                  1-Click Instant Demo Access
-                </button>
-
-                <div className="grid grid-cols-2 gap-2">
-                  <Link
-                    to="/login?redirect=/live-demo"
-                    className="flex items-center justify-center gap-1 rounded-xl border border-black/10 py-2.5 text-xs font-medium text-ink-950 transition hover:bg-black/5"
-                  >
-                    Sign in with email
-                  </Link>
-                  <Link
-                    to="/signup?redirect=/live-demo"
-                    className="flex items-center justify-center gap-1 rounded-xl bg-ink-950 py-2.5 text-xs font-medium text-parchment-50 transition hover:bg-ink-800"
-                  >
-                    Create account <ArrowRight size={12} />
-                  </Link>
-                </div>
-              </div>
-
-              <div className="mt-5 flex items-center justify-center gap-1.5 text-[11px] text-body-500">
-                <ShieldCheck size={13} className="text-emerald-500" />
-                Zero setup required · Pre-populated demo knowledge base
-              </div>
-            </motion.div>
+            KONNECT
+          </button>
+          <div className="flex items-center gap-1">
+            {backendStatus === "connected" ? (
+              <span title="Backend connected" className="flex h-5 w-5 items-center justify-center">
+                <CheckCircle2 size={13} className="text-emerald-400" />
+              </span>
+            ) : (
+              <span title="Simulated mode" className="flex h-5 w-5 items-center justify-center">
+                <Server size={12} className="text-white/30" />
+              </span>
+            )}
           </div>
-        )}
+        </div>
 
-        {/* Live Workspace Grid (Visible, interactive when signed in) */}
-        <div className={`grid gap-6 lg:grid-cols-3 ${!isAuthenticated ? "pointer-events-none select-none opacity-40 blur-[2px]" : ""}`}>
-          {/* Graph and Terminal Column */}
-          <div className="flex flex-col gap-5 lg:col-span-2">
-            {/* Graph Visualizer Canvas */}
-            <AppWindowMock title="neo4j-graph-canvas — live-sync-mode">
-              <div className="relative h-[400px] w-full bg-[#101114]">
-                <GraphCanvas
-                  live={isAuthenticated}
-                  initialNodes={initialNodes}
-                  initialLinks={initialLinks}
-                  onSelectNode={(node) => setSelectedNode(node)}
-                  selectedNodeId={selectedNode?.id}
-                  highlightedNodeIds={highlightedNodes}
-                />
-              </div>
-            </AppWindowMock>
+        {/* New Chat */}
+        <div className="px-3 pb-2">
+          <button
+            onClick={handleNewConversation}
+            disabled={!isAuthenticated}
+            className="flex w-full items-center gap-2 rounded-xl border border-white/10 px-3 py-2.5 text-xs font-medium text-white/70 transition hover:border-amber-400/40 hover:bg-white/5 hover:text-parchment-50 disabled:opacity-40"
+          >
+            <PlusSquare size={14} />
+            New chat
+          </button>
+        </div>
 
-            {/* Selected Node Details Card */}
-            <AnimatePresence>
-              {selectedNode && (
-                <motion.div
-                  initial={{ opacity: 0, y: -8 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  exit={{ opacity: 0, y: -8 }}
-                  className="flex items-center justify-between rounded-2xl border border-amber-400/40 bg-amber-400/10 p-4 text-xs text-ink-950 shadow-sm"
-                >
-                  <div className="flex items-center gap-3">
-                    <span className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-ink-950 font-bold">
-                      <Info size={16} />
-                    </span>
-                    <div>
-                      <p className="font-semibold text-sm">
-                        Selected Node: <span className="font-mono text-amber-700">{selectedNode.label || selectedNode.id}</span>
-                      </p>
-                      <p className="text-body-500">
-                        Kind: <span className="font-medium text-ink-950">{selectedNode.kind}</span> · Embedding State: <span className="text-emerald-600 font-medium">ROLAND GRU Synced</span>
-                      </p>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-2">
-                    <button
-                      onClick={() => handleSendMessage(`Tell me about ${selectedNode.label || selectedNode.id}`)}
-                      className="rounded-full bg-ink-950 px-3 py-1.5 text-xs font-medium text-parchment-50 transition hover:bg-ink-800"
-                    >
-                      Query Entity
-                    </button>
-                    <button
-                      onClick={() => setSelectedNode(null)}
-                      className="rounded-full border border-black/10 px-2.5 py-1 text-xs text-body-500 hover:bg-black/5"
-                    >
-                      Dismiss
-                    </button>
-                  </div>
-                </motion.div>
-              )}
-            </AnimatePresence>
-
-            {/* Refined Developer Terminal Console */}
-            <div className="overflow-hidden rounded-2xl border border-black/15 bg-[#121316] shadow-xl ring-1 ring-white/5">
-              {/* Terminal Top Bar with Tab Switchers */}
-              <div className="flex flex-wrap items-center justify-between border-b border-white/10 bg-[#1A1B22] px-4 py-2 text-xs">
-                <div className="flex items-center gap-2">
-                  <div className="flex items-center gap-1.5 mr-2">
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#FF5F57]/80" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#FEBC2E]/80" />
-                    <span className="h-2.5 w-2.5 rounded-full bg-[#28C840]/80" />
-                  </div>
+        {/* Conversation history */}
+        <nav className="flex-1 overflow-y-auto px-2 py-1 no-scrollbar">
+          {conversations.length > 0 && (
+            <>
+              <p className="mb-1 px-2 text-[10px] font-semibold uppercase tracking-wider text-white/25">
+                Recent
+              </p>
+              <div className="flex flex-col gap-0.5">
+                {conversations.map((conv) => (
                   <button
-                    onClick={() => setTerminalTab("event-stream")}
-                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-[11px] transition ${
-                      terminalTab === "event-stream"
-                        ? "bg-white/15 text-white font-medium shadow-sm"
-                        : "text-body-300 hover:text-white"
+                    key={conv.id}
+                    onClick={() => setActiveConvId(conv.id)}
+                    className={`flex w-full items-center gap-2 rounded-lg px-3 py-2 text-left text-[11px] transition ${
+                      conv.id === activeConvId
+                        ? "bg-white/10 text-parchment-50"
+                        : "text-white/50 hover:bg-white/5 hover:text-white/80"
                     }`}
                   >
-                    <Terminal size={12} />
-                    event-stream.log
-                  </button>
-                  <button
-                    onClick={() => setTerminalTab("neo4j")}
-                    className={`flex items-center gap-1.5 rounded-md px-2.5 py-1 font-mono text-[11px] transition ${
-                      terminalTab === "neo4j"
-                        ? "bg-white/15 text-white font-medium shadow-sm"
-                        : "text-body-300 hover:text-white"
-                    }`}
-                  >
-                    <Activity size={12} />
-                    neo4j-patch.cypher
-                  </button>
-                </div>
-
-                <div className="flex items-center gap-3">
-                  <span className="flex items-center gap-1.5 font-mono text-[10px] text-emerald-400">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
-                    STREAM ACTIVE
-                  </span>
-                  <button
-                    onClick={handleSimulateEdit}
-                    className="flex items-center gap-1.5 rounded-full bg-amber-400/20 px-3 py-1 text-xs font-semibold text-amber-400 ring-1 ring-amber-400/40 transition hover:bg-amber-400 hover:text-ink-950"
-                  >
-                    <PlusCircle size={12} />
-                    Trigger Edit
-                  </button>
-                </div>
-              </div>
-
-              {/* Terminal Body */}
-              <div className="h-44 overflow-y-auto p-4 font-mono text-[11px] leading-relaxed text-parchment-50 no-scrollbar">
-                {terminalTab === "event-stream" ? (
-                  <div className="space-y-1.5">
-                    {log.map((entry, idx) => (
-                      <div key={idx} className="flex items-start gap-2">
-                        <span className="text-body-300/40 select-none text-[10px]">{String(idx + 1).padStart(2, "0")}</span>
-                        <span className="text-body-300/60 text-[10px]">{entry.time}</span>
-                        <span className={`rounded px-1 py-0.2 text-[9px] font-bold border ${getBadgeColor(entry.tag)}`}>
-                          {entry.tag}
-                        </span>
-                        <span className="text-body-300/90 flex-1">{entry.text}</span>
-                      </div>
-                    ))}
-                    <div ref={logEndRef} />
-                  </div>
-                ) : (
-                  <div className="space-y-2 text-sky-300">
-                    <p className="text-body-300">// Active Neo4j Cypher transactional patch queue</p>
-                    <p>MATCH (d:Doc &#123;id: $docId&#125;)-[r:MENTIONS]-&gt;(e:Entity)</p>
-                    <p>WHERE e.lastSynced &lt; datetime($timestamp)</p>
-                    <p>MERGE (d)-[:UPDATED_AT]-&gt;(t:Timestamp &#123;val: $timestamp&#125;)</p>
-                    <p className="text-amber-400">&gt; Commited 6 node state updates via bolt://localhost:7687</p>
-                  </div>
-                )}
-              </div>
-            </div>
-          </div>
-
-          {/* Interactive Chat Column */}
-          <div className="flex flex-col gap-4">
-            <AppWindowMock title="konnect-ai-chat — grounded-agent">
-              <div className="flex h-[420px] flex-col justify-between bg-[#121316]">
-                {/* Chat message bubbles */}
-                <div className="flex flex-1 flex-col gap-3 overflow-y-auto p-4 text-xs no-scrollbar">
-                  {chat.map((m, i) => (
-                    <motion.div
-                      key={i}
-                      initial={{ opacity: 0, y: 8 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className={`max-w-[90%] rounded-2xl px-4 py-2.5 leading-relaxed ${
-                        m.role === "user"
-                          ? "ml-auto rounded-tr-sm bg-sky-500/25 text-sky-100 ring-1 ring-sky-500/30"
-                          : "mr-auto rounded-tl-sm bg-white/10 text-parchment-50 ring-1 ring-white/10"
-                      }`}
-                    >
-                      <p>{m.text}</p>
-                      {m.citations && m.citations.length > 0 && (
-                        <div className="mt-2 flex flex-wrap items-center gap-1 border-t border-white/10 pt-2 text-[10px]">
-                          <span className="text-body-300">Citing:</span>
-                          {m.citations.map((cId) => (
-                            <button
-                              key={cId}
-                              onClick={() => setHighlightedNodes([cId])}
-                              className="rounded bg-amber-400/20 px-1.5 py-0.5 font-mono text-amber-400 transition hover:bg-amber-400 hover:text-ink-950"
-                            >
-                              #{cId}
-                            </button>
-                          ))}
-                        </div>
-                      )}
-                    </motion.div>
-                  ))}
-                  <div ref={chatEndRef} />
-                </div>
-
-                {/* Input form */}
-                <form
-                  onSubmit={(e) => {
-                    e.preventDefault();
-                    handleSendMessage();
-                  }}
-                  className="flex items-center gap-2 border-t border-white/10 bg-[#16171D] p-3"
-                >
-                  <input
-                    type="text"
-                    value={inputMessage}
-                    onChange={(e) => setInputMessage(e.target.value)}
-                    placeholder="Ask your knowledge graph…"
-                    className="flex-1 rounded-full bg-white/10 px-4 py-2 text-xs text-parchment-50 placeholder:text-body-300 focus:outline-none focus:ring-1 focus:ring-amber-400"
-                  />
-                  <button
-                    type="submit"
-                    aria-label="Send query"
-                    className="flex h-8 w-8 items-center justify-center rounded-full bg-amber-400 text-ink-950 transition hover:bg-amber-500"
-                  >
-                    <Send size={14} />
-                  </button>
-                </form>
-              </div>
-            </AppWindowMock>
-
-            {/* Preset Query Suggestions */}
-            <div className="rounded-2xl border border-black/5 bg-white p-4 shadow-sm">
-              <p className="mb-2.5 text-xs font-semibold text-ink-950 flex items-center gap-1.5">
-                <Sparkles size={14} className="text-amber-500" />
-                Try Sample Queries:
-              </p>
-              <div className="flex flex-col gap-1.5">
-                {PRESET_QUERIES.map((q) => (
-                  <button
-                    key={q}
-                    onClick={() => handleSendMessage(q)}
-                    className="rounded-xl border border-black/5 bg-parchment-50/70 px-3 py-2 text-left text-xs text-ink-950 transition hover:border-amber-400 hover:bg-white"
-                  >
-                    {q}
+                    <MessageSquare size={12} className="shrink-0 opacity-60" />
+                    <span className="truncate leading-snug">{conv.title}</span>
                   </button>
                 ))}
               </div>
+            </>
+          )}
+        </nav>
+
+        {/* User info */}
+        <div className="border-t border-white/10 p-3">
+          {isAuthenticated ? (
+            <div className="flex items-center justify-between rounded-xl bg-white/5 px-3 py-2.5">
+              <div className="flex items-center gap-2.5 min-w-0">
+                <div className="flex h-7 w-7 shrink-0 items-center justify-center rounded-full bg-amber-400 text-[10px] font-bold text-ink-950">
+                  {user?.avatar ?? user?.name?.[0]?.toUpperCase() ?? "U"}
+                </div>
+                <div className="min-w-0">
+                  <p className="truncate text-[11px] font-semibold text-parchment-50">
+                    {user?.name ?? "Demo User"}
+                  </p>
+                  <p className="truncate text-[9px] text-white/40">{user?.role ?? "Workspace Member"}</p>
+                </div>
+              </div>
+              <button
+                onClick={logout}
+                title="Sign out"
+                className="flex h-6 w-6 shrink-0 items-center justify-center rounded-md text-white/40 transition hover:bg-white/10 hover:text-white/80"
+              >
+                <LogOut size={12} />
+              </button>
             </div>
+          ) : (
+            <Link
+              to="/login"
+              className="flex w-full items-center justify-center gap-1.5 rounded-xl border border-white/10 py-2.5 text-[11px] font-medium text-white/50 transition hover:border-amber-400/40 hover:text-parchment-50"
+            >
+              <User size={12} /> Sign in
+            </Link>
+          )}
+        </div>
+
+        {/* Back to home */}
+        <div className="border-t border-white/10 px-3 py-2.5">
+          <Link
+            to="/"
+            className="flex items-center gap-1.5 text-[10px] text-white/30 transition hover:text-white/60"
+          >
+            <ArrowLeft size={10} /> Back to home
+          </Link>
+        </div>
+      </aside>
+
+      {/* ── Chat area ─────────────────────────────────────────────────────── */}
+      <div className="relative flex flex-1 flex-col overflow-hidden">
+        {/* Auth gate */}
+        {!isAuthenticated && <AuthGate onDemo={handleDemoLogin} />}
+
+        {/* Top bar */}
+        <header className="flex shrink-0 items-center justify-between border-b border-black/8 bg-white/80 px-5 py-3 backdrop-blur">
+          <div className="flex items-center gap-2">
+            <Zap size={14} className="text-amber-500" />
+            <span className="text-xs font-semibold text-ink-950">
+              {conversations.find((c) => c.id === activeConvId)?.title || "KONNECT AI"}
+            </span>
+            {backendStatus === "simulated" && (
+              <span className="rounded-full bg-black/5 px-2 py-0.5 text-[9px] text-body-500">
+                Simulated
+              </span>
+            )}
           </div>
+
+          <button
+            onClick={() => setGraphOpen((v) => !v)}
+            className={`flex items-center gap-1.5 rounded-full px-3 py-1.5 text-[11px] font-medium transition ${
+              graphOpen
+                ? "bg-ink-950 text-parchment-50"
+                : "border border-black/10 text-body-500 hover:border-black/20 hover:text-ink-950"
+            }`}
+          >
+            <LayoutGrid size={12} />
+            Graph
+            <ChevronRight
+              size={12}
+              className={`transition-transform ${graphOpen ? "rotate-180" : ""}`}
+            />
+          </button>
+        </header>
+
+        {/* Messages */}
+        <div className="flex flex-1 overflow-hidden">
+          <div className="flex flex-1 flex-col overflow-y-auto">
+            {/* Welcome state or messages */}
+            {activeMessages.length <= 1 && !isLoading && isAuthenticated ? (
+              <WelcomeState onPreset={(q) => handleSend(q)} />
+            ) : (
+              <div className="mx-auto w-full max-w-2xl flex-1 px-4 py-6">
+                <div className="flex flex-col gap-4">
+                  {activeMessages.map((msg, i) => (
+                    <MessageBubble
+                      key={i}
+                      message={msg}
+                      onCitationClick={handleCitationClick}
+                    />
+                  ))}
+                  {isLoading && <TypingIndicator />}
+                  <div ref={chatEndRef} />
+                </div>
+              </div>
+            )}
+          </div>
+
+          {/* Graph panel (collapsible) */}
+          <AnimatePresence>
+            {graphOpen && (
+              <motion.div
+                initial={{ width: 0, opacity: 0 }}
+                animate={{ width: 340, opacity: 1 }}
+                exit={{ width: 0, opacity: 0 }}
+                transition={{ duration: 0.25, ease: "easeInOut" }}
+                className="hidden shrink-0 overflow-hidden lg:block"
+                style={{ width: 340 }}
+              >
+                <GraphPanel
+                  highlightedNodes={highlightedNodes}
+                  onClose={() => setGraphOpen(false)}
+                />
+              </motion.div>
+            )}
+          </AnimatePresence>
+        </div>
+
+        {/* Input bar */}
+        <div className="shrink-0 border-t border-black/8 bg-white/90 px-4 py-3.5 backdrop-blur">
+          <div className="mx-auto flex w-full max-w-2xl items-end gap-3">
+            <div className="flex flex-1 items-end rounded-2xl border border-black/10 bg-white shadow-sm transition-all focus-within:border-amber-400 focus-within:ring-2 focus-within:ring-amber-400/20">
+              <textarea
+                ref={inputRef}
+                value={inputValue}
+                onChange={(e) => setInputValue(e.target.value)}
+                onKeyDown={handleKeyDown}
+                placeholder={isAuthenticated ? "Ask your knowledge graph…" : "Sign in to start chatting"}
+                disabled={!isAuthenticated || isLoading}
+                rows={1}
+                className="flex-1 resize-none rounded-2xl bg-transparent px-4 py-3 text-sm text-ink-950 placeholder:text-body-500/60 focus:outline-none disabled:opacity-50"
+                style={{ maxHeight: 120, overflowY: "auto" }}
+                onInput={(e) => {
+                  e.target.style.height = "auto";
+                  e.target.style.height = Math.min(e.target.scrollHeight, 120) + "px";
+                }}
+              />
+            </div>
+            <button
+              onClick={() => handleSend()}
+              disabled={!isAuthenticated || isLoading || !inputValue.trim()}
+              aria-label="Send"
+              className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-amber-400 text-ink-950 shadow transition hover:bg-amber-500 disabled:opacity-40 disabled:cursor-not-allowed"
+            >
+              {isLoading ? (
+                <span className="h-4 w-4 animate-spin rounded-full border-2 border-ink-950/30 border-t-ink-950" />
+              ) : (
+                <Send size={16} />
+              )}
+            </button>
+          </div>
+          <p className="mt-2 text-center text-[10px] text-body-500/60">
+            KONNECT AI can make mistakes. Responses are grounded in your knowledge graph.
+          </p>
         </div>
       </div>
     </div>
