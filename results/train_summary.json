@@ -1,0 +1,14 @@
+{
+  "snapshots": 200,
+  "optimizer_steps": 335,
+  "loss_per_epoch": [
+    5.090021966108635,
+    4.650020364505141,
+    4.608321204114316,
+    4.643007356729081,
+    4.6519999112655865
+  ],
+  "mean_cosine_similarity": 0.9319650530815125,
+  "checkpoint_sha256": "5342a9193ef385b3e0bee7582aa19a9e309a5d45abb4395db47499bddea5dc0d",
+  "checkpoint_path": "C:\\Users\\Aarav\\Desktop\\Projects\\KONNECT\\ai_service\\models\\roland_midsem.pt"
+}

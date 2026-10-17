@@ -119,7 +119,7 @@ class TruncatedBPTTTrainer:
                     )
 
                     # Compute Link Prediction loss with SCORE_SCALE and anchor loss
-                    SCORE_SCALE, ANCHOR_WEIGHT = 10.0, 1.0
+                    SCORE_SCALE, ANCHOR_WEIGHT = 10.0, 3.5
                     pos_src, pos_dst = pos_edge_index[0], pos_edge_index[1]
                     pos_scores = SCORE_SCALE * (embeddings[pos_src] * embeddings[pos_dst]).sum(dim=-1)
                     pos_labels = torch.ones_like(pos_scores)

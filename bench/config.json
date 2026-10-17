@@ -1,0 +1,20 @@
+{
+  "seed": 42,
+  "train_seed": 43,
+  "llm_provider": "openai",
+  "llm_model": "gpt-4o",
+  "judge_model": "gpt-4o-mini",
+  "embedding_model": "all-MiniLM-L6-v2",
+  "embedding_dim": 384,
+  "k_hops": 2,
+  "pcst_cost_weight": 0.15,
+  "pcst_prize_threshold": 0.40,
+  "pcst_max_subgraph_nodes": 25,
+  "max_context_words": 1100,
+  "top_k_chunks": 10,
+  "top_k_nodes": 10,
+  "corpus_sizes": [50, 150, 300, 500],
+  "num_edits": 20,
+  "efficiency_repeats": 3,
+  "cache_dir": "data/cache/extraction_cache"
+}
