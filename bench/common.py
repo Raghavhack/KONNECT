@@ -241,11 +241,14 @@ def map_nodes_to_documents(graph_store: Any, node_names: List[str]) -> Dict[str,
         fallback = getattr(graph_store.client, "in_memory_fallback", None)
         if fallback and hasattr(fallback, "nodes"):
             for name in node_names:
-                node = fallback.nodes.get(name)
-                if node and "document_id" in node.get("properties", {}):
-                    doc_id = node["properties"]["document_id"]
-                    if doc_id:
-                        mapping[name] = [doc_id]
+                norm_key = f"Entity:{name.lower()}"
+                node = fallback.nodes.get(norm_key) or fallback.nodes.get(name)
+                if node:
+                    docs = node.get("mentioned_in_docs")
+                    if docs:
+                        mapping[name] = list(docs)
+                    elif "document_id" in node:
+                        mapping[name] = [node["document_id"]]
 
     return mapping
 
