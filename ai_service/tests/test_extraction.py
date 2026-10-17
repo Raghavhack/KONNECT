@@ -64,3 +64,64 @@ def test_graphrag_extractor_fallback_and_delta():
     assert len(delta.affected_entity_names) > 0
     # FastAPI was existing, so it should be categorized as updated
     assert any(e.name == "FastAPI" for e in delta.updated_entities)
+
+
+def test_llm_client_strict_mode(monkeypatch):
+    """Test that BENCH_STRICT_LLM=1 causes LLMClient to raise instead of simulating."""
+    # Strict mode enabled
+    monkeypatch.setenv("BENCH_STRICT_LLM", "1")
+    strict_llm = LLMClient(provider="openai", openai_api_key=None)
+    assert strict_llm.strict is True
+    with pytest.raises(RuntimeError, match="LLM unavailable; refusing to simulate in benchmark mode"):
+        strict_llm.generate("Hello world")
+
+    # Non-strict mode
+    monkeypatch.setenv("BENCH_STRICT_LLM", "0")
+    lenient_llm = LLMClient(provider="openai", openai_api_key=None)
+    assert lenient_llm.strict is False
+    assert lenient_llm.simulated_calls == 0
+    resp = lenient_llm.generate("Hello world")
+    assert lenient_llm.simulated_calls == 1
+    assert isinstance(resp, str)
+
+
+def test_graphrag_extractor_strict_mode(monkeypatch):
+    """Test that BENCH_STRICT_LLM=1 causes extractor to raise instead of falling back."""
+    monkeypatch.setenv("BENCH_STRICT_LLM", "1")
+    strict_llm = LLMClient(provider="openai", openai_api_key=None)
+    extractor = GraphRAGIncrementalExtractor(llm_client=strict_llm)
+
+    chunk = Chunk(
+        chunk_id="chk_2",
+        document_id="doc_2",
+        chunk_index=0,
+        text="A test chunk for strict mode evaluation.",
+        start_char=0,
+        end_char=40,
+        token_count=8,
+        detected_entities=["Aarav", "KONNECT"],
+    )
+
+    with pytest.raises(RuntimeError):
+        extractor.extract_from_chunk(chunk)
+
+    # Lenient mode
+    monkeypatch.setenv("BENCH_STRICT_LLM", "0")
+    lenient_llm = LLMClient(provider="openai", openai_api_key=None)
+    extractor_lenient = GraphRAGIncrementalExtractor(llm_client=lenient_llm)
+    assert extractor_lenient.fallback_count == 0
+    # Provide an invalid mock generator that causes an exception
+    class FailingLLM:
+        def generate(self, *args, **kwargs):
+            raise ConnectionError("Simulated network drop")
+    extractor_failing = GraphRAGIncrementalExtractor(llm_client=FailingLLM())
+    ents, rels = extractor_failing.extract_from_chunk(chunk)
+    assert extractor_failing.fallback_count == 1
+    assert len(ents) > 0
+
+
+def test_bootstrap_index_logger():
+    """Verify scripts/bootstrap_index.py imports cleanly and defines logger."""
+    import scripts.bootstrap_index as bi
+    assert hasattr(bi, "logger")
+    assert bi.logger.name == "bootstrap"

@@ -4,6 +4,7 @@ Inspired by Microsoft GraphRAG SDK, designed specifically to intercept per-docum
 extraction for real-time incremental knowledge graph updates.
 """
 
+import os
 import json
 import logging
 import hashlib
@@ -33,6 +34,7 @@ class GraphRAGIncrementalExtractor:
         self.llm = llm_client
         self.embedder = embedder or SentenceTransformerEmbedder()
         self.similarity_threshold = similarity_threshold
+        self.fallback_count = 0
 
     def extract_from_chunk(self, chunk: Chunk) -> Tuple[List[ExtractedEntity], List[ExtractedRelationship]]:
         """
@@ -111,6 +113,9 @@ class GraphRAGIncrementalExtractor:
                 )
 
         except Exception as e:
+            if os.getenv("BENCH_STRICT_LLM", "0") == "1":
+                raise
+            self.fallback_count = getattr(self, "fallback_count", 0) + 1
             logger.warning(
                 f"LLM extraction encountered error: {e}. Falling back to candidate entity spotting."
             )

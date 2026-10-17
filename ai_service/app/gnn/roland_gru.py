@@ -15,10 +15,12 @@ logger = logging.getLogger(__name__)
 try:
     import torch
     import torch.nn as nn
+    import torch.nn.functional as F
     TORCH_AVAILABLE = True
 except ImportError:
     torch = None
     nn = None
+    F = None
     TORCH_AVAILABLE = False
 
 from .gnn_layers import build_gnn_layer
@@ -141,10 +143,15 @@ if TORCH_AVAILABLE:
                 self.gru_cells.append(nn.GRUCell(input_size=hidden_dim, hidden_size=hidden_dim))
 
             # Readout projection to output embedding dimension
-            self.readout = nn.Sequential(
-                nn.Linear(hidden_dim, out_dim),
-                nn.LayerNorm(out_dim),
-            )
+            if residual and out_dim == in_dim:
+                self.readout = nn.Linear(hidden_dim, out_dim)
+                nn.init.zeros_(self.readout.weight)
+                nn.init.zeros_(self.readout.bias)
+            else:
+                self.readout = nn.Sequential(
+                    nn.Linear(hidden_dim, out_dim),
+                    nn.LayerNorm(out_dim),
+                )
 
             # Per-node state cache
             self.state_cache = PerNodeStateCache(hidden_dim=hidden_dim)
@@ -193,7 +200,7 @@ if TORCH_AVAILABLE:
             # Final embedding readout with residual connection to text embedding space
             proj_h = self.readout(h_prev_layer)
             if self.residual and self.out_dim == self.in_dim:
-                out_embeddings = x + proj_h
+                out_embeddings = F.normalize(x + proj_h, dim=-1)
             else:
                 out_embeddings = proj_h
             return out_embeddings
@@ -208,16 +215,19 @@ if TORCH_AVAILABLE:
         def load_checkpoint(self, path: str) -> bool:
             """Loads PyTorch model weights from disk."""
             import os
+            import hashlib
             if not os.path.exists(path):
                 return False
             try:
+                with open(path, "rb") as f:
+                    sha256 = hashlib.sha256(f.read()).hexdigest()
                 state_dict = torch.load(path, map_location="cpu")
                 self.load_state_dict(state_dict)
-                logger.info(f"Successfully loaded ROLAND model checkpoint from {path}")
+                logger.info(f"Successfully loaded ROLAND model checkpoint from {path} (SHA-256: {sha256})")
                 return True
             except Exception as e:
-                logger.warning(f"Failed to load ROLAND checkpoint from {path}: {e}")
-                return False
+                logger.error(f"Failed to load ROLAND checkpoint from {path}: {e}")
+                raise RuntimeError(f"Checkpoint {path} exists but failed to load: {e}")
 
 else:
     # Standalone NumPy implementation of ROLAND GRU for environments without PyTorch
@@ -252,7 +262,10 @@ else:
             self.U_r = rng.randn(hidden_dim, hidden_dim) * 0.1
             self.W_h = rng.randn(hidden_dim, hidden_dim) * 0.1
             self.U_h = rng.randn(hidden_dim, hidden_dim) * 0.1
-            self.W_out = rng.randn(hidden_dim, out_dim) * 0.1
+            if residual and out_dim == in_dim:
+                self.W_out = np.zeros((hidden_dim, out_dim), dtype=np.float32)
+            else:
+                self.W_out = rng.randn(hidden_dim, out_dim) * 0.1
 
         def _gru_cell_step(self, x: np.ndarray, h_prev: np.ndarray) -> np.ndarray:
             """Pure NumPy GRU cell computation."""
@@ -308,7 +321,9 @@ else:
 
             proj_h = np.dot(h_prev_layer, self.W_out)
             if self.residual and self.out_dim == self.in_dim:
-                out = x_arr + proj_h
+                norm = np.linalg.norm(x_arr + proj_h, axis=-1, keepdims=True)
+                norm = np.maximum(norm, 1e-12)
+                out = (x_arr + proj_h) / norm
             else:
                 out = proj_h
             return out
@@ -333,16 +348,19 @@ else:
         def load_checkpoint(self, path: str) -> bool:
             """Loads NumPy model weights from disk."""
             import os
+            import hashlib
             actual_path = path if os.path.exists(path) else f"{path}.npz"
             if not os.path.exists(actual_path):
                 return False
             try:
+                with open(actual_path, "rb") as f:
+                    sha256 = hashlib.sha256(f.read()).hexdigest()
                 data = np.load(actual_path)
                 for k in ["W_in", "W_z", "U_z", "W_r", "U_r", "W_h", "U_h", "W_out"]:
                     if k in data:
                         setattr(self, k, data[k])
-                logger.info(f"Loaded NumPy ROLAND checkpoint from {actual_path}")
+                logger.info(f"Loaded NumPy ROLAND checkpoint from {actual_path} (SHA-256: {sha256})")
                 return True
             except Exception as e:
-                logger.warning(f"Failed to load NumPy ROLAND checkpoint from {actual_path}: {e}")
-                return False
+                logger.error(f"Failed to load NumPy ROLAND checkpoint from {actual_path}: {e}")
+                raise RuntimeError(f"Checkpoint {actual_path} exists but failed to load: {e}")

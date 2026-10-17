@@ -123,7 +123,9 @@ def initialize_pipeline():
         os.path.join(os.path.dirname(__file__), "..", settings.ROLAND_MODEL_PATH)
     )
     if os.path.exists(checkpoint_path):
-        roland_model.load_checkpoint(checkpoint_path)
+        ok = roland_model.load_checkpoint(checkpoint_path)
+        if not ok:
+            raise RuntimeError(f"Checkpoint {checkpoint_path} exists but failed to load")
     else:
         logger.info(
             f"No trained checkpoint found at {checkpoint_path}. "

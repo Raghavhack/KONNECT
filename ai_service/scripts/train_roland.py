@@ -29,6 +29,15 @@ from app.gnn.trainer import TruncatedBPTTTrainer, DynamicGraphSnapshot
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("train_roland")
 
+try:
+    import torch
+    torch.manual_seed(42)
+except ImportError:
+    torch = None
+
+random.seed(42)
+np.random.seed(42)
+
 
 def sample_negative_edges(
     num_nodes: int,
