@@ -1,5 +1,5 @@
-import { useState, useEffect, useRef, useCallback, useMemo } from "react";
-import { Link, useSearchParams, useNavigate } from "react-router-dom";
+    import { useState, useEffect, useRef, useMemo } from "react";
+import { Link, useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Send,
@@ -13,15 +13,7 @@ import {
   Activity,
   CheckCircle2,
   ShieldCheck,
-  MessageSquare,
-  ChevronRight,
-  LayoutGrid,
-  X,
-  LogOut,
-  User,
-  Network,
-  PlusCircle,
-  ArrowLeft,
+  Cloud,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import GraphCanvas from "../components/shared/GraphCanvas";
@@ -265,11 +257,21 @@ function GraphPanel({ highlightedNodes, onClose }) {
   const initialNodes = useMemo(() => INITIAL_NODES, []);
   const initialLinks = useMemo(() => INITIAL_LINKS, []);
 
+  const [onedriveStatus, setOnedriveStatus] = useState({ connected: false });
+
+  // Check backend health and OneDrive status
   useEffect(() => {
-    const stream = streamEvents((ev) => {
-      setLog((prev) => [...prev.slice(-20), ev]);
-    });
-    return () => stream.stop();
+    fetch("/api/health")
+      .then((res) => {
+        if (res.ok) setBackendStatus("connected");
+        else setBackendStatus("simulated");
+      })
+      .catch(() => setBackendStatus("simulated"));
+
+    fetch("/api/auth/onedrive/status")
+      .then((res) => res.json())
+      .then((data) => setOnedriveStatus(data))
+      .catch(() => {});
   }, []);
 
   useEffect(() => {
@@ -549,10 +551,44 @@ export default function LiveDemo() {
     inputRef.current?.focus();
   };
 
-  const handleCitationClick = (nodeId) => {
-    setHighlightedNodes([nodeId]);
-    setGraphOpen(true);
-    setTimeout(() => setHighlightedNodes([]), 2500);
+  const handleSimulateEdit = () => {
+    const now = new Date().toLocaleTimeString();
+    const editSources = ["OneDrive: SecurityAudit.md", "OneDrive: Architecture.docx", "OneDrive: SprintNotes.txt"];
+    const chosen = editSources[Math.floor(Math.random() * editSources.length)];
+    const docId = `onedrive-doc-${Math.floor(Math.random() * 900) + 100}`;
+
+    // Trigger real backend webhook with debouncing & idempotency
+    fetch("/api/webhooks/onedrive", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        value: [
+          {
+            subscriptionId: "live-demo-subscription",
+            clientState: "konnect_onedrive_secret_state_token",
+            changeType: "updated",
+            resource: `me/drive/items/${docId}`,
+            resourceData: { id: docId },
+          },
+        ],
+      }),
+    })
+      .then((r) => r.json())
+      .then((data) => {
+        console.log("[LiveDemo] Real backend webhook response:", data);
+      })
+      .catch((err) => console.warn("[LiveDemo] Webhook ping failed:", err));
+
+    setLog((prev) => [
+      ...prev.slice(-15),
+      { tag: "WEBHOOK", text: `Inbound edit: ${chosen}`, time: now },
+      { tag: "QUEUE", text: "BullMQ debounce 3000ms quiet window started", time: now },
+      { tag: "NEO4J", text: "Patched 4 nodes, 6 edges in Neo4j GDS", time: now },
+      { tag: "GNN-GRU", text: "ROLAND updated hidden states for k=2 neighbourhood", time: now },
+    ]);
+
+    setHighlightedNodes(["root", "e1", "e2", "e3"]);
+    setTimeout(() => setHighlightedNodes([]), 2000);
   };
 
   const handleKeyDown = (e) => {
@@ -578,8 +614,27 @@ export default function LiveDemo() {
             onClick={() => navigate("/")}
             className="flex items-center gap-2 text-sm font-semibold text-parchment-50 transition hover:opacity-80"
           >
-            <span className="flex h-6 w-6 items-center justify-center rounded-full bg-amber-400 text-[11px] font-bold text-ink-950">
-              K
+            <Server size={12} />
+            {backendStatus === "connected" ? "Backend Connected (Port 5000)" : "Simulated Local Orchestration"}
+          </span>
+          {onedriveStatus.connected ? (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 ring-1 ring-blue-500/30">
+              <Cloud size={12} /> OneDrive: {onedriveStatus.account?.displayName || "Connected"}
+            </span>
+          ) : (
+            <a
+              href="http://localhost:5000/api/auth/onedrive/connect"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-3 py-1 text-xs font-medium text-blue-600 ring-1 ring-blue-500/30 hover:bg-blue-600 hover:text-white transition"
+              title="Click to authenticate Microsoft Graph OAuth 2.0"
+            >
+              <Cloud size={12} /> Connect OneDrive (OAuth 2.0)
+            </a>
+          )}
+          {isAuthenticated && (
+            <span className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-3 py-1 text-xs font-medium text-emerald-600 ring-1 ring-emerald-500/30">
+              <CheckCircle2 size={12} /> Authenticated: {user?.name}
             </span>
             KONNECT
           </button>
