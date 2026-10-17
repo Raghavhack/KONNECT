@@ -1,0 +1,1722 @@
+[
+  {
+    "_id": "aa9f52f7087711ebbd67ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who is older, Juan Cruz Real or Miguel Augusto Prince?",
+    "answer": "Miguel Augusto Prince",
+    "gold_docs": [
+      "miguel_augusto_prince",
+      "juan_cruz_real"
+    ],
+    "supporting_facts": [
+      [
+        "Juan Cruz Real",
+        0
+      ],
+      [
+        "Miguel Augusto Prince",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Juan Cruz Ochoa",
+      "Juan Komar",
+      "Miguel Riffo",
+      "Juan Cruz \u00c1lvarez",
+      "Juan Cruz Esquivel",
+      "Juan Cruz Real",
+      "Juan Cruz Arg\u00fcello",
+      "Juan Cruz Zurbriggen",
+      "Juan Cruz Franzoni",
+      "Miguel Augusto Prince"
+    ]
+  },
+  {
+    "_id": "f0adb205085611ebbd59ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who was born later, Gianantonio Capizucchi or Bersvend Martinussen R\u00f8kkum?",
+    "answer": "Bersvend Martinussen R\u00f8kkum",
+    "gold_docs": [
+      "gianantonio_capizucchi",
+      "bersvend_martinussen_r_kkum"
+    ],
+    "supporting_facts": [
+      [
+        "Gianantonio Capizucchi",
+        0
+      ],
+      [
+        "Bersvend Martinussen R\u00f8kkum",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Edwin Richards (field hockey)",
+      "Alexander Fuks",
+      "W. Augustus Barratt",
+      "Judah Even Shemuel",
+      "Catherine I of Russia",
+      "Jacob Knaani",
+      "Jo\u00ebl Henry (journalist)",
+      "Dorothee Metlitzki",
+      "Gianantonio Capizucchi",
+      "Bersvend Martinussen R\u00f8kkum"
+    ]
+  },
+  {
+    "_id": "4f0d28fb088b11ebbd6fac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who lived longer, Louis-Armand-Constantin De Rohan or Adalberto Pereira Dos Santos?",
+    "answer": "Adalberto Pereira Dos Santos",
+    "gold_docs": [
+      "louis_armand_constantin_de_rohan",
+      "adalberto_pereira_dos_santos"
+    ],
+    "supporting_facts": [
+      [
+        "Louis-Armand-Constantin de Rohan",
+        0
+      ],
+      [
+        "Adalberto Pereira dos Santos",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Adalberto Pereira dos Santos",
+      "Douglas (footballer, born 1990)",
+      "Emmanuel de Rohan-Polduc",
+      "Ant\u00f3nio Eduardo Pereira dos Santos",
+      "Adailton dos Santos",
+      "Luan Santos (footballer, born 1991)",
+      "Louis Constantin de Rohan (1697\u20131779)",
+      "Romeu Pereira dos Santos",
+      "Louis-Armand-Constantin de Rohan",
+      "Ney Santanna"
+    ]
+  },
+  {
+    "_id": "7fa3f5ae086d11ebbd62ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Which film came out first, Kumbasaram or Mystery Of The 13Th Guest?",
+    "answer": "Mystery Of The 13Th Guest",
+    "gold_docs": [
+      "mystery_of_the_13th_guest",
+      "kumbasaram"
+    ],
+    "supporting_facts": [
+      [
+        "Kumbasaram",
+        1
+      ],
+      [
+        "Mystery of the 13th Guest",
+        0
+      ]
+    ],
+    "context_titles": [
+      "The Mystery of the Black Pearl",
+      "The Mystery of 13",
+      "The Mystery of Marie Roget (film)",
+      "Operation Leopard",
+      "Mystery of the 13th Guest",
+      "The Mystery of Death",
+      "The Mystery of the Hansom Cab (1936 film)",
+      "Mystery of the Wolf",
+      "The Thirteenth Guest",
+      "Kumbasaram"
+    ]
+  },
+  {
+    "_id": "7e2f71dd09c211ebbdb0ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Are both Oregon Coast Technology School and Pierre Elliott Trudeau High School located in the same country?",
+    "answer": "no",
+    "gold_docs": [
+      "pierre_elliott_trudeau_high_school",
+      "oregon_coast_technology_school"
+    ],
+    "supporting_facts": [
+      [
+        "Oregon Coast Technology School",
+        0
+      ],
+      [
+        "Pierre Elliott Trudeau High School",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Coll\u00e8ge Pierre-Elliott-Trudeau",
+      "Niles West High School",
+      "Pierre Elliott Trudeau High School",
+      "Westview Junior-Senior High School",
+      "Anderson High School (Anderson, Indiana)",
+      "Franklin High School (Massachusetts)",
+      "Attica Junior-Senior High School",
+      "Frankfort High School (Indiana)",
+      "Dover High School (Delaware)",
+      "Oregon Coast Technology School"
+    ]
+  },
+  {
+    "_id": "11d4031608c211ebbd8bac1f6bf848b6",
+    "type": "comparison",
+    "question": "Did the movies Alles Auf Zucker! and M\u00e4dchen, M\u00e4dchen 2 \u2013 Loft Oder Liebe, originate from the same country?",
+    "answer": "yes",
+    "gold_docs": [
+      "m_dchen_m_dchen_2_loft_oder_liebe",
+      "alles_auf_zucker"
+    ],
+    "supporting_facts": [
+      [
+        "Alles auf Zucker!",
+        1
+      ],
+      [
+        "M\u00e4dchen, M\u00e4dchen 2 \u2013 Loft oder Liebe",
+        0
+      ]
+    ],
+    "context_titles": [
+      "M\u00e4dchen, M\u00e4dchen 2 \u2013 Loft oder Liebe",
+      "The Muppets Go to the Movies",
+      "Love, Cheat & Steal",
+      "Polly of the Movies",
+      "At the Movies",
+      "M\u00e4dchen, M\u00e4dchen",
+      "A Night at the Movies",
+      "M\u00e4dchen, M\u00e4dchen",
+      "Alles auf Zucker!",
+      "Dream Lover (1993 film)"
+    ]
+  },
+  {
+    "_id": "fc9d859008a011ebbd78ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who was born earlier, Geoff Bagnall or Caroline Huppert?",
+    "answer": "Caroline Huppert",
+    "gold_docs": [
+      "geoff_bagnall",
+      "caroline_huppert"
+    ],
+    "supporting_facts": [
+      [
+        "Geoff Bagnall",
+        0
+      ],
+      [
+        "Caroline Huppert",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Mrs. Lovett Cameron",
+      "Evan Crooks",
+      "Jo\u00ebl Henry (journalist)",
+      "Caroline Huppert",
+      "Caroline Robbins",
+      "Alexandrine-Caroline Branchu",
+      "King Lan Chew",
+      "Jeff Barlow",
+      "Pauline Delpech",
+      "Geoff Bagnall"
+    ]
+  },
+  {
+    "_id": "45462f11097611ebbdb0ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Are both Aslan, Tehran and Shell Lake, Wisconsin located in the same country?",
+    "answer": "no",
+    "gold_docs": [
+      "aslan_tehran",
+      "shell_lake_wisconsin"
+    ],
+    "supporting_facts": [
+      [
+        "Aslan, Tehran",
+        0
+      ],
+      [
+        "Shell Lake, Wisconsin",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Shell Lake (Becker County, Minnesota)",
+      "WXNK",
+      "Lake Wisconsin (disambiguation)",
+      "Shell Lake High School",
+      "Aslan, Tehran",
+      "Shell Lake, Wisconsin",
+      "Patricia Spafford Smith",
+      "Crystal Lake, Wisconsin",
+      "Shell Lake, Arkansas",
+      "Shell Lake"
+    ]
+  },
+  {
+    "_id": "c1aab4db094f11ebbdaeac1f6bf848b6",
+    "type": "comparison",
+    "question": "Are the movies The Wings Of The Dove (1981 Film) and Prison Sans Barreaux, from the same country?",
+    "answer": "yes",
+    "gold_docs": [
+      "the_wings_of_the_dove_1981_film",
+      "prison_sans_barreaux"
+    ],
+    "supporting_facts": [
+      [
+        "The Wings of the Dove (1981 film)",
+        0
+      ],
+      [
+        "Prison sans barreaux",
+        0
+      ]
+    ],
+    "context_titles": [
+      "The Wings of the Dove (1981 film)",
+      "The Wings of the Dove (disambiguation)",
+      "Prison sans barreaux",
+      "Prison Without Bars",
+      "Prison Without Bars",
+      "On the Wings of an Eagle",
+      "Take It or Leave It (1981 film)",
+      "The Dove",
+      "On the Wings of Love",
+      "The Wings of the Dove (1997 film)"
+    ]
+  },
+  {
+    "_id": "fd316388090f11ebbdadac1f6bf848b6",
+    "type": "comparison",
+    "question": "Which film was released more recently, The Sick Stockrider or The Bounce Back?",
+    "answer": "The Bounce Back",
+    "gold_docs": [
+      "the_sick_stockrider",
+      "the_bounce_back"
+    ],
+    "supporting_facts": [
+      [
+        "The Sick Stockrider",
+        0
+      ],
+      [
+        "The Bounce Back",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Bounce",
+      "George Bryant (actor)",
+      "The Wonderful World of Captain Kuhio",
+      "Coney Island Baby (film)",
+      "Bounce Festival",
+      "The Bounce Back",
+      "Bounce Back",
+      "The Sick Stockrider",
+      "The Sick Stockrider (poem)",
+      "Bounce Tour"
+    ]
+  },
+  {
+    "_id": "1e6b546108cc11ebbd93ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who was born first, Semih \u00d6zmert or Pita Bolatoga?",
+    "answer": "Semih \u00d6zmert",
+    "gold_docs": [
+      "semih_zmert",
+      "pita_bolatoga"
+    ],
+    "supporting_facts": [
+      [
+        "Semih \u00d6zmert",
+        0
+      ],
+      [
+        "Pita Bolatoga",
+        0
+      ]
+    ],
+    "context_titles": [
+      "John Allen (Oxford University cricketer)",
+      "Hartley Lobban",
+      "Greg A. Hill (artist)",
+      "Wesley Barresi",
+      "Wale Adebanwi",
+      "Tom Dickinson",
+      "Pita Bolatoga",
+      "Henry Moore (cricketer)",
+      "John McMahon (Surrey and Somerset cricketer)",
+      "Semih \u00d6zmert"
+    ]
+  },
+  {
+    "_id": "85483fe908ab11ebbd82ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who lived longer, Horace Lawson Hunley or Ernst Ziehm?",
+    "answer": "Ernst Ziehm",
+    "gold_docs": [
+      "ernst_ziehm",
+      "horace_lawson_hunley"
+    ],
+    "supporting_facts": [
+      [
+        "Horace Lawson Hunley",
+        0
+      ],
+      [
+        "Ernst Ziehm",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Ernest Friedrich Gilg",
+      "Horace Lawson Hunley",
+      "Arno\u0161t Kreuz",
+      "Fred H. Frank",
+      "Justin (historian)",
+      "Ernst Ziehm",
+      "Maximus of Tyre",
+      "Gaius Julius Aquila",
+      "Ernst Pringsheim Jr.",
+      "R. Charlton (poet/songwriter)"
+    ]
+  },
+  {
+    "_id": "d022b25f090811ebbdadac1f6bf848b6",
+    "type": "comparison",
+    "question": "Which album was released more recently, Amor Prohibido or Girls & Peace?",
+    "answer": "Girls & Peace",
+    "gold_docs": [
+      "girls_peace",
+      "amor_prohibido"
+    ],
+    "supporting_facts": [
+      [
+        "Amor Prohibido",
+        0
+      ],
+      [
+        "Girls & Peace",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Amor Prohibido",
+      "Amor Prohibido (Daniela Romo album)",
+      "The Dreamer (Etta James album)",
+      "Clothes Drop",
+      "Fozzy (album)",
+      "At the Edge of Time",
+      "Girls & Peace",
+      "What I Deserve",
+      "Ramiyah (album)",
+      "Streetlife (Sqeezer album)"
+    ]
+  },
+  {
+    "_id": "f6e119300bae11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is Princess Jeguk's paternal grandmother?",
+    "answer": "Sorghaghtani Beki",
+    "gold_docs": [
+      "princess_jeguk",
+      "kublai_khan"
+    ],
+    "supporting_facts": [
+      [
+        "Princess Jeguk",
+        2
+      ],
+      [
+        "Kublai Khan",
+        3
+      ]
+    ],
+    "context_titles": [
+      "Hubba bint Hulail",
+      "Kublai Khan",
+      "Kaoru Hatoyama",
+      "Tjuyu",
+      "Hannah Arnold",
+      "Purnima (Hindi actress)",
+      "Anne Denman",
+      "Princess Jeguk",
+      "Mona Hopton Bell",
+      "Diana Guardato"
+    ]
+  },
+  {
+    "_id": "0e6f6aa60bb011ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is the paternal grandfather of Ferdinand Maximilian, Hereditary Prince Of Baden-Baden?",
+    "answer": "Edward Fortunatus",
+    "gold_docs": [
+      "ferdinand_maximilian_hereditary_prince_of_baden_baden",
+      "william_margrave_of_baden_baden"
+    ],
+    "supporting_facts": [
+      [
+        "Ferdinand Maximilian, Hereditary Prince of Baden-Baden",
+        0
+      ],
+      [
+        "William, Margrave of Baden-Baden",
+        1
+      ]
+    ],
+    "context_titles": [
+      "William, Margrave of Baden-Baden",
+      "Duchess Sibylle of Saxe-Lauenburg",
+      "Charles Louis, Hereditary Prince of Baden",
+      "Princess Maria Luisa Carlota of Parma",
+      "Louis George, Margrave of Baden-Baden",
+      "Ferdinand Maximilian, Hereditary Prince of Baden-Baden",
+      "Catherine of Lorraine, Margravine of Baden-Baden",
+      "Maria Magdalena of Oettingen-Baldern",
+      "Philip II, Margrave of Baden-Baden",
+      "Louis William, Margrave of Baden-Baden"
+    ]
+  },
+  {
+    "_id": "4c028de00baf11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is Chiang Hsiao-Wen's paternal grandfather?",
+    "answer": "Chiang Kai-shek",
+    "gold_docs": [
+      "chiang_hsiao_wen",
+      "chiang_ching_kuo"
+    ],
+    "supporting_facts": [
+      [
+        "Chiang Hsiao-wen",
+        0
+      ],
+      [
+        "Chiang Ching-kuo",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Chiang Hsiao-wen",
+      "Kaya Alp",
+      "Chiang Hsiao-chang",
+      "Huang Hsiao-wen",
+      "Chiang Ching-kuo",
+      "Chiang Hsiao-yung",
+      "Fred Le Deux",
+      "Henry Krause",
+      "Chiang Hsiao-yen",
+      "Chiang Hsiao-wu"
+    ]
+  },
+  {
+    "_id": "a9ef43f80baf11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is Joan Of Valois, Duchess Of Alen\u00e7on's maternal grandfather?",
+    "answer": "Charles VI of France",
+    "gold_docs": [
+      "joan_of_valois_duchess_of_alen_on",
+      "isabella_of_valois"
+    ],
+    "supporting_facts": [
+      [
+        "Joan of Valois, Duchess of Alen\u00e7on",
+        0
+      ],
+      [
+        "Isabella of Valois",
+        1
+      ]
+    ],
+    "context_titles": [
+      "\u00c9lisabeth Marguerite d'Orl\u00e9ans",
+      "Isabella of Valois",
+      "Joan of Valois, Countess of Beaumont",
+      "Jean de Metz",
+      "Marie of Brittany, Lady of La Guerche",
+      "Isabella of Valois, Duchess of Bourbon",
+      "Ren\u00e9, Duke of Alen\u00e7on",
+      "Marie of Valois, Duchess of Calabria",
+      "Joan of Valois, Duchess of Alen\u00e7on",
+      "Charles III, Count of Alen\u00e7on"
+    ]
+  },
+  {
+    "_id": "475b89f80bb011ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is the mother-in-law of Gyrid Of Sweden?",
+    "answer": "Thyra",
+    "gold_docs": [
+      "gyrid_of_sweden",
+      "harald_bluetooth"
+    ],
+    "supporting_facts": [
+      [
+        "Gyrid of Sweden",
+        0
+      ],
+      [
+        "Harald Bluetooth",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Donna Harun",
+      "Harald Bluetooth",
+      "Priscilla Pointer",
+      "Marian Shields Robinson",
+      "Vera Mileti\u0107",
+      "Baroness G\u00f6sta von dem Bussche-Haddenhausen",
+      "Maria Thins",
+      "Eldon Howard",
+      "Gyrid of Sweden",
+      "Doria Ragland"
+    ]
+  },
+  {
+    "_id": "6c14c5ca0bb011ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is the paternal grandmother of Princess Elisabeth Of Waldeck And Pyrmont?",
+    "answer": "Princess Emma of Anhalt-Bernburg-Schaumburg-Hoym",
+    "gold_docs": [
+      "george_victor_prince_of_waldeck_and_pyrmont",
+      "princess_elisabeth_of_waldeck_and_pyrmont"
+    ],
+    "supporting_facts": [
+      [
+        "Princess Elisabeth of Waldeck and Pyrmont",
+        0
+      ],
+      [
+        "George Victor, Prince of Waldeck and Pyrmont",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Princess Caroline of Waldeck and Pyrmont",
+      "Princess Guda of Waldeck and Pyrmont",
+      "Princess Elisabeth of Waldeck and Pyrmont",
+      "George Victor, Prince of Waldeck and Pyrmont",
+      "Princess Helena of Waldeck and Pyrmont (1899\u20131948)",
+      "George II, Prince of Waldeck and Pyrmont",
+      "Wittekind, Prince of Waldeck and Pyrmont",
+      "George I, Prince of Waldeck and Pyrmont",
+      "Friedrich Anton Ulrich, Prince of Waldeck and Pyrmont",
+      "Princess Mathilde of Waldeck and Pyrmont"
+    ]
+  },
+  {
+    "_id": "5bb4b70e0baf11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is the maternal grandmother of Maria Josepha Of Bavaria?",
+    "answer": "Wilhelmine Amalia of Brunswick-L\u00fcneburg",
+    "gold_docs": [
+      "maria_josepha_of_bavaria",
+      "maria_amalia_holy_roman_empress"
+    ],
+    "supporting_facts": [
+      [
+        "Maria Josepha of Bavaria",
+        4
+      ],
+      [
+        "Maria Amalia, Holy Roman Empress",
+        2
+      ]
+    ],
+    "context_titles": [
+      "Maria Josepha of Austria",
+      "Princess Maria Josepha of Saxony (1867\u20131944)",
+      "Maria Josepha of Saxony, Dauphine of France",
+      "Hubba bint Hulail",
+      "Archduchess Maria Josepha of Austria (1687\u20131703)",
+      "Maria Josepha of Bavaria",
+      "Archduchess Maria Josepha of Austria",
+      "Maria Amalia, Holy Roman Empress",
+      "Duchess Marie Gabrielle in Bavaria",
+      "Duchess Maria Anna Josepha of Bavaria"
+    ]
+  },
+  {
+    "_id": "593b0efa0bb011ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is Princess Irina Alexandrovna Of Russia's maternal grandmother?",
+    "answer": "Maria Feodorovna",
+    "gold_docs": [
+      "grand_duchess_xenia_alexandrovna_of_russia",
+      "princess_irina_alexandrovna_of_russia"
+    ],
+    "supporting_facts": [
+      [
+        "Princess Irina Alexandrovna of Russia",
+        1
+      ],
+      [
+        "Grand Duchess Xenia Alexandrovna of Russia",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Kaoru Hatoyama",
+      "Abdul-Vahed Niyazov",
+      "Irina Paley",
+      "Tjuyu",
+      "Hannah Arnold",
+      "Hubba bint Hulail",
+      "Irina Yusupova",
+      "Princess Irina Alexandrovna of Russia",
+      "Grand Duchess Xenia Alexandrovna of Russia",
+      "Prince Dmitri Alexandrovich of Russia"
+    ]
+  },
+  {
+    "_id": "77fb88d80bb011ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is the child-in-law of Quispe Sisa?",
+    "answer": "Hernando Pizarro",
+    "gold_docs": [
+      "francisca_pizarro_yupanqui",
+      "quispe_sisa"
+    ],
+    "supporting_facts": [
+      [
+        "Quispe Sisa",
+        1
+      ],
+      [
+        "Francisca Pizarro Yupanqui",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Robert W. Levering",
+      "Francisca Pizarro Yupanqui",
+      "Nick Sidi",
+      "Wyndham Goold",
+      "Greg Penner",
+      "Robert Vadra",
+      "Quispe Sisa",
+      "Charles Francis Norton",
+      "Romanos Argyros (10th century)",
+      "John Hall (physician)"
+    ]
+  },
+  {
+    "_id": "a4f3103c0baf11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is the paternal grandfather of Carlos, Prince Of Asturias?",
+    "answer": "Charles V",
+    "gold_docs": [
+      "philip_ii_of_spain",
+      "carlos_prince_of_asturias"
+    ],
+    "supporting_facts": [
+      [
+        "Carlos, Prince of Asturias",
+        0
+      ],
+      [
+        "Philip II of Spain",
+        3
+      ]
+    ],
+    "context_titles": [
+      "Abd al-Muttalib",
+      "Carlos, Prince of Asturias",
+      "Philip II of Spain",
+      "John Westley",
+      "Kaya Alp",
+      "Lyon Cohen",
+      "Miguel da Paz, Prince of Portugal",
+      "Hermann, Prince of Wied",
+      "Fred Le Deux",
+      "Henry Krause"
+    ]
+  },
+  {
+    "_id": "81c9a46c0bb011ebab90acde48001122",
+    "type": "inference",
+    "question": "Who did Joan Ramon Ii, Count Of Cardona marry?",
+    "answer": "Joana de Prades",
+    "gold_docs": [
+      "john_ramon_iii_count_of_cardona",
+      "joan_ramon_ii_count_of_cardona"
+    ],
+    "supporting_facts": [
+      [
+        "Joan Ramon II, Count of Cardona",
+        2
+      ],
+      [
+        "John Ramon III, Count of Cardona",
+        2
+      ]
+    ],
+    "context_titles": [
+      "Agatha (wife of Samuel of Bulgaria)",
+      "Empress Sh\u014dken",
+      "Joan Ramon II, Count of Cardona",
+      "Enrique de Cardona y Enr\u00edquez",
+      "Paulina Nin de Cardona",
+      "John Ramon III, Count of Cardona",
+      "Maria de Cardona",
+      "William II de Haya",
+      "Artaynte",
+      "Antonio de Cardona"
+    ]
+  },
+  {
+    "_id": "f01efe220baf11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is the paternal grandfather of Nguy\u1ec5n Ph\u00fac H\u1ed3ng Cai?",
+    "answer": "Minh M\u1ea1ng",
+    "gold_docs": [
+      "thi_u_tr",
+      "nguy_n_ph_c_h_ng_cai"
+    ],
+    "supporting_facts": [
+      [
+        "Nguy\u1ec5n Ph\u00fac H\u1ed3ng Cai",
+        3
+      ],
+      [
+        "Thi\u1ec7u Tr\u1ecb",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Nguy\u1ec5n Ph\u00fac Mi\u00ean B\u1eedu",
+      "Nguy\u1ec5n Ph\u00fac Mi\u00ean Trinh",
+      "\u0110\u00e0o Duy T\u1eeb",
+      "Nguy\u1ec5n Ph\u00fac H\u1ed3ng Cai",
+      "T\u1ef1 \u0110\u1ee9c",
+      "Th\u1eeba Thi\u00ean (empress)",
+      "Nguy\u1ec5n Ph\u00fac Lu\u00e2n",
+      "Thi\u1ec7u Tr\u1ecb",
+      "Nguy\u1ec5n Ph\u00fac Mi\u00ean \u0110\u1ecbnh",
+      "Nguy\u1ec5n Ph\u00fac H\u1ed3ng B\u1ea3o"
+    ]
+  },
+  {
+    "_id": "36a68b9a0baf11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is Konrad Januszowic's maternal grandmother?",
+    "answer": "Birut\u0117",
+    "gold_docs": [
+      "danut_of_lithuania",
+      "konrad_januszowic"
+    ],
+    "supporting_facts": [
+      [
+        "Konrad Januszowic",
+        1
+      ],
+      [
+        "Danut\u0117 of Lithuania",
+        3
+      ]
+    ],
+    "context_titles": [
+      "Hubba bint Hulail",
+      "Tjuyu",
+      "Mona Hopton Bell",
+      "Danut\u0117 of Lithuania",
+      "G\u00fclbahar Hatun (wife of Mehmed II)",
+      "Hannah Arnold",
+      "H\u00fcma Hatun",
+      "Konrad Januszowic",
+      "Anne Denman",
+      "Kaoru Hatoyama"
+    ]
+  },
+  {
+    "_id": "b8a95fa60bdb11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where did the director of film Walkover (Film) graduate from?",
+    "answer": "National Film School in \u0141\u00f3d\u017a",
+    "gold_docs": [
+      "jerzy_skolimowski",
+      "walkover_film"
+    ],
+    "supporting_facts": [
+      [
+        "Walkover (film)",
+        0
+      ],
+      [
+        "Jerzy Skolimowski",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Jerzy Skolimowski",
+      "Brian Kennedy (gallery director)",
+      "Ian Barry (director)",
+      "Jason Moore (director)",
+      "Now Where Did the 7th Company Get to?",
+      "Dana Blankstein",
+      "Walkover (film)",
+      "Olav Aaraas",
+      "Peter Levin",
+      "The Seventh Company Outdoors"
+    ]
+  },
+  {
+    "_id": "09028c0e0bda11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the place of death of Ankhesenamun's mother?",
+    "answer": "Amarna",
+    "gold_docs": [
+      "nefertiti",
+      "ankhesenamun"
+    ],
+    "supporting_facts": [
+      [
+        "Ankhesenamun",
+        1
+      ],
+      [
+        "Nefertiti",
+        4
+      ]
+    ],
+    "context_titles": [
+      "Place of birth",
+      "Dance of Death (disambiguation)",
+      "Nefertiti",
+      "Ankhesenamun",
+      "Motherland (disambiguation)",
+      "Where Was I",
+      "Sennedjem",
+      "Valley of Death",
+      "Place of origin",
+      "Beaulieu-sur-Loire"
+    ]
+  },
+  {
+    "_id": "c03e86180bdd11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What is the place of birth of the director of film Hikikomori: Tokyo Plastic?",
+    "answer": "New York",
+    "gold_docs": [
+      "adario_strange",
+      "hikikomori_tokyo_plastic"
+    ],
+    "supporting_facts": [
+      [
+        "Hikikomori: Tokyo Plastic",
+        1
+      ],
+      [
+        "Adario Strange",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Hikikomori: Tokyo Plastic",
+      "Peter Levin",
+      "Jesse E. Hobson",
+      "Dana Blankstein",
+      "Jason Moore (director)",
+      "Adario Strange",
+      "S. N. Mathur",
+      "Olav Aaraas",
+      "Ian Barry (director)",
+      "Brian Kennedy (gallery director)"
+    ]
+  },
+  {
+    "_id": "a9f7e5d40bdd11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What is the place of birth of the director of film Thrilling Youth?",
+    "answer": "Indiana",
+    "gold_docs": [
+      "thrilling_youth",
+      "grover_jones"
+    ],
+    "supporting_facts": [
+      [
+        "Thrilling Youth",
+        0
+      ],
+      [
+        "Grover Jones",
+        3
+      ]
+    ],
+    "context_titles": [
+      "Jason Moore (director)",
+      "S. N. Mathur",
+      "Brian Kennedy (gallery director)",
+      "Thrilling Youth",
+      "Peter Levin",
+      "Olav Aaraas",
+      "Dana Blankstein",
+      "Grover Jones",
+      "Jesse E. Hobson",
+      "Ian Barry (director)"
+    ]
+  },
+  {
+    "_id": "4637ec300bdb11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What is the place of birth of the director of film The Death Dance?",
+    "answer": "Colorado",
+    "gold_docs": [
+      "the_death_dance",
+      "j_searle_dawley"
+    ],
+    "supporting_facts": [
+      [
+        "The Death Dance",
+        0
+      ],
+      [
+        "J. Searle Dawley",
+        2
+      ]
+    ],
+    "context_titles": [
+      "Jesse E. Hobson",
+      "Daishi Dance",
+      "Brian Kennedy (gallery director)",
+      "The Death Dance",
+      "Peter Levin",
+      "Frank E. X. Dance",
+      "Olav Aaraas",
+      "S. N. Mathur",
+      "J. Searle Dawley",
+      "Ian Barry (director)"
+    ]
+  },
+  {
+    "_id": "3da318ea0bdd11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What nationality is Noemie Fox's mother?",
+    "answer": "French",
+    "gold_docs": [
+      "myriam_fox_jerusalmi",
+      "noemie_fox"
+    ],
+    "supporting_facts": [
+      [
+        "Noemie Fox",
+        2
+      ],
+      [
+        "Myriam Fox-Jerusalmi",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Rumbold of Mechelen",
+      "Myriam Fox-Jerusalmi",
+      "Baglan Mailybayev",
+      "Noemie Fox",
+      "Eleni Gabre-Madhin",
+      "Khalid al-Habib",
+      "Ali Rahuma",
+      "Roberto Savio",
+      "Rachel Crosbee",
+      "Nayelly Hern\u00e1ndez"
+    ]
+  },
+  {
+    "_id": "a08505d20bdc11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Who is the father of the director of film Red 2 (Film)?",
+    "answer": "Aldo Parisot",
+    "gold_docs": [
+      "dean_parisot",
+      "red_2_film"
+    ],
+    "supporting_facts": [
+      [
+        "Red 2 (film)",
+        2
+      ],
+      [
+        "Dean Parisot",
+        3
+      ]
+    ],
+    "context_titles": [
+      "Dean Parisot",
+      "Mia Riverton",
+      "Peter Hamel",
+      "Ian Barry (director)",
+      "Red 2 (film)",
+      "Paul Brooke",
+      "Obata Toramori",
+      "Georgia Lee",
+      "Inoue Masaru (bureaucrat)",
+      "Lars Eliasson"
+    ]
+  },
+  {
+    "_id": "90d98be80bdd11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Which country the performer of song What You Need From Me is from?",
+    "answer": "United Kingdom",
+    "gold_docs": [
+      "what_you_need_from_me",
+      "bonnie_tyler"
+    ],
+    "supporting_facts": [
+      [
+        "What You Need from Me",
+        0
+      ],
+      [
+        "Bonnie Tyler",
+        13
+      ]
+    ],
+    "context_titles": [
+      "Take It from Me",
+      "From Me to You (disambiguation)",
+      "Bernie Bonvoisin",
+      "Justine Pelmelay",
+      "O Valencia!",
+      "What You Need from Me",
+      "What You Need",
+      "Frank C. Cook IV",
+      "Bonnie Tyler",
+      "Billy Milano"
+    ]
+  },
+  {
+    "_id": "d2ecf40a0bda11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the director of film Alaska.De born?",
+    "answer": "Oldenburg",
+    "gold_docs": [
+      "alaska_de",
+      "esther_gronenborn"
+    ],
+    "supporting_facts": [
+      [
+        "Alaska.de",
+        0
+      ],
+      [
+        "Esther Gronenborn",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Olav Aaraas",
+      "S. N. Mathur",
+      "Ian Barry (director)",
+      "Alaska.de",
+      "Esther Gronenborn",
+      "Jesse E. Hobson",
+      "Peter Levin",
+      "Brian Kennedy (gallery director)",
+      "Dana Blankstein",
+      "Victor Huang"
+    ]
+  },
+  {
+    "_id": "c95d7b400bd911eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What is the date of death of Timothy Shriver's father?",
+    "answer": "January 18, 2011",
+    "gold_docs": [
+      "timothy_shriver",
+      "sargent_shriver"
+    ],
+    "supporting_facts": [
+      [
+        "Timothy Shriver",
+        1
+      ],
+      [
+        "Sargent Shriver",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Harry Johnson (wrestler)",
+      "Bill Smith (footballer, born 1897)",
+      "Sargent Shriver",
+      "Thomas Scott (diver)",
+      "Fred Bradley (rower)",
+      "Theodred II (Bishop of Elmham)",
+      "Albert Thompson (footballer, born 1912)",
+      "Timothy Shriver",
+      "Harry Wainwright (footballer)",
+      "Etan Boritzer"
+    ]
+  },
+  {
+    "_id": "fe91ee700bdb11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "When did Prince Alexander Romanov's father die?",
+    "answer": "12 September 1974",
+    "gold_docs": [
+      "prince_nikita_alexandrovich_of_russia",
+      "prince_alexander_romanov"
+    ],
+    "supporting_facts": [
+      [
+        "Prince Alexander Romanov",
+        1
+      ],
+      [
+        "Prince Nikita Alexandrovich of Russia",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Harry Johnson (wrestler)",
+      "Bill Smith (footballer, born 1897)",
+      "Prince Nikita Alexandrovich of Russia",
+      "Prince Alexander Romanov",
+      "Thomas Scott (diver)",
+      "Ali Kay",
+      "Etan Boritzer",
+      "Theodred II (Bishop of Elmham)",
+      "Harry Wainwright (footballer)",
+      "Albert Thompson (footballer, born 1912)"
+    ]
+  },
+  {
+    "_id": "f05423560bda11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where did Saw Thanda's husband die?",
+    "answer": "Mrauk U",
+    "gold_docs": [
+      "min_dikkha",
+      "saw_thanda"
+    ],
+    "supporting_facts": [
+      [
+        "Saw Thanda",
+        1
+      ],
+      [
+        "Min Dikkha",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Saw Thanda",
+      "Motherland (disambiguation)",
+      "Kerf (disambiguation)",
+      "Where Was I",
+      "Valley of Death",
+      "Min Dikkha",
+      "Dance of Death (disambiguation)",
+      "Place of origin",
+      "Beaulieu-sur-Loire",
+      "Place of birth"
+    ]
+  },
+  {
+    "_id": "e40339fc08ab11ebbd82ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Are director of film Dark River (2017 Film) and director of film Mahler (Film) from the same country?",
+    "answer": "yes",
+    "gold_docs": [
+      "ken_russell",
+      "clio_barnard",
+      "mahler_film",
+      "dark_river_2017_film"
+    ],
+    "supporting_facts": [
+      [
+        "Dark River (2017 film)",
+        0
+      ],
+      [
+        "Mahler (film)",
+        1
+      ],
+      [
+        "Clio Barnard",
+        0
+      ],
+      [
+        "Ken Russell",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Mahler (film)",
+      "Ken Russell",
+      "Ian Barry (director)",
+      "Clio Barnard",
+      "Hanro Smitsman",
+      "Peter Levin",
+      "Howard W. Koch",
+      "Brian Johnson (special effects artist)",
+      "Rachel Feldman",
+      "Dark River (2017 film)"
+    ]
+  },
+  {
+    "_id": "d6b29805087b11ebbd69ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Do both directors of films Cahill U.S. Marshal and Modern Love (1990 Film) have the same nationality?",
+    "answer": "no",
+    "gold_docs": [
+      "andrew_v_mclaglen",
+      "cahill_u_s_marshal",
+      "robby_benson",
+      "modern_love_1990_film"
+    ],
+    "supporting_facts": [
+      [
+        "Cahill U.S. Marshal",
+        1
+      ],
+      [
+        "Modern Love (1990 film)",
+        0
+      ],
+      [
+        "Andrew V. McLaglen",
+        0
+      ],
+      [
+        "Robby Benson",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Satan Town",
+      "Andrew V. McLaglen",
+      "Robby Benson",
+      "Kid (1990 film)",
+      "Modern Love (1990 film)",
+      "Oku Yasukata",
+      "Modern Love",
+      "There Were Days... and Moons",
+      "Mr. Right (2009 film)",
+      "Cahill U.S. Marshal"
+    ]
+  },
+  {
+    "_id": "e48935f308b011ebbd85ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director born first, 30 Days In Atlanta or Les Tuche 3?",
+    "answer": "30 Days In Atlanta",
+    "gold_docs": [
+      "robert_peters",
+      "olivier_baroux",
+      "30_days_in_atlanta",
+      "les_tuche_3"
+    ],
+    "supporting_facts": [
+      [
+        "30 Days in Atlanta",
+        0
+      ],
+      [
+        "Les Tuche 3",
+        0
+      ],
+      [
+        "Robert Peters",
+        0
+      ],
+      [
+        "Olivier Baroux",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Olivier Baroux",
+      "30 Days in Atlanta",
+      "Les Tuche 2",
+      "Robert Peters",
+      "Les Tuche 3",
+      "Claude Weisz",
+      "Ariane de Bonvoisin",
+      "Les Tuche",
+      "Henry Moore (cricketer)",
+      "Th\u00e9o Fernandez"
+    ]
+  },
+  {
+    "_id": "aeade7d408c911ebbd92ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director who was born first, My Own Private Idaho or The Village Squire?",
+    "answer": "The Village Squire",
+    "gold_docs": [
+      "gus_van_sant",
+      "reginald_denham",
+      "the_village_squire",
+      "my_own_private_idaho"
+    ],
+    "supporting_facts": [
+      [
+        "My Own Private Idaho",
+        0
+      ],
+      [
+        "The Village Squire",
+        0
+      ],
+      [
+        "Gus Van Sant",
+        0
+      ],
+      [
+        "Reginald Denham",
+        0
+      ]
+    ],
+    "context_titles": [
+      "My Own Private River",
+      "Henry Moore (cricketer)",
+      "Gus Van Sant",
+      "The Village Squire",
+      "Reginald Denham",
+      "Chiara Caselli",
+      "My Own Private Idaho",
+      "Hartley Lobban",
+      "Hassan Zee",
+      "Wale Adebanwi"
+    ]
+  },
+  {
+    "_id": "396a3978086511ebbd5eac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director who was born later, Vendetta Dal Futuro or Phantasm Iv: Oblivion?",
+    "answer": "Phantasm Iv: Oblivion",
+    "gold_docs": [
+      "don_coscarelli",
+      "vendetta_dal_futuro",
+      "phantasm_iv_oblivion",
+      "sergio_martino"
+    ],
+    "supporting_facts": [
+      [
+        "Vendetta dal futuro",
+        0
+      ],
+      [
+        "Phantasm IV: Oblivion",
+        1
+      ],
+      [
+        "Sergio Martino",
+        0
+      ],
+      [
+        "Don Coscarelli",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Don Coscarelli",
+      "Rumbi Katedza",
+      "W. Augustus Barratt",
+      "Vendetta dal futuro",
+      "Edward Yates",
+      "Catherine I of Russia",
+      "Ben Palmer",
+      "Hassan Zee",
+      "Sergio Martino",
+      "Phantasm IV: Oblivion"
+    ]
+  },
+  {
+    "_id": "f3c5261d088711ebbd6eac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Do both directors of films Bad City Blues and A Woman In White have the same nationality?",
+    "answer": "no",
+    "gold_docs": [
+      "michael_stevens_producer",
+      "claude_autant_lara",
+      "bad_city_blues",
+      "a_woman_in_white"
+    ],
+    "supporting_facts": [
+      [
+        "Bad City Blues",
+        0
+      ],
+      [
+        "A Woman in White",
+        1
+      ],
+      [
+        "Michael Stevens (producer)",
+        0
+      ],
+      [
+        "Claude Autant-Lara",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Brodie Orth",
+      "Mr. Right (2009 film)",
+      "A Woman in White",
+      "Michael Stevens (producer)",
+      "The Woman in White (1921 film)",
+      "Claude Autant-Lara",
+      "Bad City Blues",
+      "Ivan Quinn",
+      "The Woman in White (1948 film)",
+      "Walt Elder"
+    ]
+  },
+  {
+    "_id": "24e4900e087211ebbd64ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Do both films Mollenard and Assignment In Brittany have the directors that share the same nationality?",
+    "answer": "yes",
+    "gold_docs": [
+      "mollenard",
+      "jack_conway_filmmaker",
+      "assignment_in_brittany",
+      "robert_siodmak"
+    ],
+    "supporting_facts": [
+      [
+        "Mollenard",
+        0
+      ],
+      [
+        "Assignment in Brittany",
+        0
+      ],
+      [
+        "Robert Siodmak",
+        0
+      ],
+      [
+        "Jack Conway (filmmaker)",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Mississippi Highway 366",
+      "Mollenard",
+      "Matt Joyce (baseball)",
+      "List of religious figures of Brittany",
+      "List of General Hospital crew",
+      "Robert Siodmak",
+      "Pennsylvania Route 97",
+      "Jack Conway (filmmaker)",
+      "Matt Corboy",
+      "Assignment in Brittany"
+    ]
+  },
+  {
+    "_id": "1cc85484085c11ebbd5cac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director who was born earlier, Dokuzuncu Hariciye Ko\u011fu\u015fu or An Open Secret?",
+    "answer": "Dokuzuncu Hariciye Ko\u011fu\u015fu",
+    "gold_docs": [
+      "amy_j_berg",
+      "an_open_secret",
+      "nejat_saydam",
+      "dokuzuncu_hariciye_ko_u_u"
+    ],
+    "supporting_facts": [
+      [
+        "Dokuzuncu Hariciye Ko\u011fu\u015fu",
+        0
+      ],
+      [
+        "An Open Secret",
+        0
+      ],
+      [
+        "Nejat Saydam",
+        0
+      ],
+      [
+        "Amy J. Berg",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Dokuzuncu Hariciye Ko\u011fu\u015fu",
+      "Ben Palmer",
+      "An Open Secret",
+      "Abhishek Saxena",
+      "Rumbi Katedza",
+      "Amy J. Berg",
+      "Open Secret",
+      "Nejat Saydam",
+      "Hassan Zee",
+      "Edward Yates"
+    ]
+  },
+  {
+    "_id": "e21e04b9089d11ebbd78ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director who died later, The Strange Boarder or As Men Love?",
+    "answer": "As Men Love",
+    "gold_docs": [
+      "e_mason_hopper",
+      "the_strange_boarder",
+      "as_men_love",
+      "clarence_g_badger"
+    ],
+    "supporting_facts": [
+      [
+        "The Strange Boarder",
+        0
+      ],
+      [
+        "As Men Love",
+        0
+      ],
+      [
+        "Clarence G. Badger",
+        0
+      ],
+      [
+        "E. Mason Hopper",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Drew Esocoff",
+      "Sherry Argov",
+      "The Strange Boarder",
+      "Do Men Love Women?",
+      "Abhishek Saxena",
+      "Ben Palmer",
+      "As Men Love",
+      "G. Marthandan",
+      "E. Mason Hopper",
+      "Clarence G. Badger"
+    ]
+  },
+  {
+    "_id": "bff878b0089c11ebbd78ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film whose director is younger, It'S All True: Based On An Unfinished Film By Orson Welles or Prisoner Of The Night (Film)?",
+    "answer": "It'S All True: Based On An Unfinished Film By Orson Welles",
+    "gold_docs": [
+      "prisoner_of_the_night_film",
+      "richard_wilson_director",
+      "it_s_all_true_based_on_an_unfinished_film_by_orson_welles",
+      "michael_curtiz"
+    ],
+    "supporting_facts": [
+      [
+        "It's All True: Based on an Unfinished Film by Orson Welles",
+        1
+      ],
+      [
+        "Prisoner of the Night (film)",
+        0
+      ],
+      [
+        "Richard Wilson (director)",
+        0
+      ],
+      [
+        "Michael Curtiz",
+        1
+      ]
+    ],
+    "context_titles": [
+      "It's All True: Based on an Unfinished Film by Orson Welles",
+      "Francisco Reiguera",
+      "Richard Wilson (director)",
+      "An Evening with Orson Welles",
+      "Prisoner of the Night (film)",
+      "Macbeth (1948 film)",
+      "Future Shock (film)",
+      "Magician: The Astonishing Life and Work of Orson Welles",
+      "The Dreamers (unfinished film)",
+      "Michael Curtiz"
+    ]
+  },
+  {
+    "_id": "6723781008b611ebbd88ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director born earlier, Helluva Good Luck or The Last House On The Beach?",
+    "answer": "The Last House On The Beach",
+    "gold_docs": [
+      "the_last_house_on_the_beach",
+      "franco_prosperi",
+      "helluva_good_luck",
+      "zden_k_tro_ka"
+    ],
+    "supporting_facts": [
+      [
+        "Helluva Good Luck",
+        0
+      ],
+      [
+        "The Last House on the Beach",
+        0
+      ],
+      [
+        "Zden\u011bk Tro\u0161ka",
+        0
+      ],
+      [
+        "Franco Prosperi",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Last House on Dead End Street",
+      "Helluva Good Luck",
+      "Zden\u011bk Tro\u0161ka",
+      "Claude Weisz",
+      "Helluva Good Luck 2",
+      "Roger Watkins",
+      "Dennis Iliadis",
+      "Franco Prosperi",
+      "The Last House on the Beach",
+      "Carl Ellsworth"
+    ]
+  },
+  {
+    "_id": "cf838fa608a911ebbd80ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director born earlier, The Last Days Of Pompeo or Border Post 58?",
+    "answer": "The Last Days Of Pompeo",
+    "gold_docs": [
+      "harry_hasso",
+      "border_post_58",
+      "the_last_days_of_pompeo",
+      "mario_mattoli"
+    ],
+    "supporting_facts": [
+      [
+        "The Last Days of Pompeo",
+        0
+      ],
+      [
+        "Border Post 58",
+        0
+      ],
+      [
+        "Mario Mattoli",
+        0
+      ],
+      [
+        "Harry Hasso",
+        0
+      ]
+    ],
+    "context_titles": [
+      "The Last Days of Pompeii (1950 film)",
+      "L'Autrichienne (film)",
+      "The Last Days of Pompeo",
+      "Mario Mattoli",
+      "The Last Days of Disco",
+      "Harry Hasso",
+      "Cerro Cora (film)",
+      "The Last Days of Emma Blank",
+      "The Last Days of Winter",
+      "Border Post 58"
+    ]
+  }
+]
