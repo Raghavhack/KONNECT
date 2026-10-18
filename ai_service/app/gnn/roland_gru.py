@@ -82,7 +82,9 @@ class PerNodeStateCache:
         node_ids: List[str],
         new_states: Any,
     ) -> None:
-        """Updates the cached representations h_v^(l, t) for nodes in this snapshot."""
+        """
+        Updates the cached representations h_v^(l, t) for nodes in this snapshot.
+        """
         layer_c = self.get_layer_cache(layer_idx)
         for i, nid in enumerate(node_ids):
             state = new_states[i]
@@ -199,14 +201,18 @@ if TORCH_AVAILABLE:
             return out_embeddings
 
         def save_checkpoint(self, path: str) -> None:
-            """Saves PyTorch model weights to disk."""
+            """
+            Saves PyTorch model weights to disk.
+            """
             import os
             os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
             torch.save(self.state_dict(), path)
             logger.info(f"Saved ROLAND model checkpoint to {path}")
 
         def load_checkpoint(self, path: str) -> bool:
-            """Loads PyTorch model weights from disk."""
+            """
+            Loads PyTorch model weights from disk.
+            """
             import os
             if not os.path.exists(path):
                 return False
@@ -220,129 +226,4 @@ if TORCH_AVAILABLE:
                 return False
 
 else:
-    # Standalone NumPy implementation of ROLAND GRU for environments without PyTorch
-    class RolandHierarchicalGRU:
-        """
-        Pure NumPy standalone equivalent of RolandHierarchicalGRU.
-        Guarantees algorithmic correctness and unit test execution without Torch.
-        """
-
-        def __init__(
-            self,
-            in_dim: int,
-            hidden_dim: int = 128,
-            out_dim: int = 384,
-            num_layers: int = 2,
-            residual: bool = True,
-            **kwargs,
-        ):
-            self.in_dim = in_dim
-            self.hidden_dim = hidden_dim
-            self.out_dim = out_dim
-            self.num_layers = num_layers
-            self.residual = residual
-            self.state_cache = PerNodeStateCache(hidden_dim=hidden_dim)
-
-            # Random deterministic weights
-            rng = np.random.RandomState(42)
-            self.W_in = rng.randn(in_dim, hidden_dim) * 0.1
-            self.W_z = rng.randn(hidden_dim, hidden_dim) * 0.1
-            self.U_z = rng.randn(hidden_dim, hidden_dim) * 0.1
-            self.W_r = rng.randn(hidden_dim, hidden_dim) * 0.1
-            self.U_r = rng.randn(hidden_dim, hidden_dim) * 0.1
-            self.W_h = rng.randn(hidden_dim, hidden_dim) * 0.1
-            self.U_h = rng.randn(hidden_dim, hidden_dim) * 0.1
-            self.W_out = rng.randn(hidden_dim, out_dim) * 0.1
-
-        def _gru_cell_step(self, x: np.ndarray, h_prev: np.ndarray) -> np.ndarray:
-            """Pure NumPy GRU cell computation."""
-            # Update gate z
-            z = 1.0 / (1.0 + np.exp(-(np.dot(x, self.W_z) + np.dot(h_prev, self.U_z))))
-            # Reset gate r
-            r = 1.0 / (1.0 + np.exp(-(np.dot(x, self.W_r) + np.dot(h_prev, self.U_r))))
-            # Candidate hidden state
-            h_candidate = np.tanh(np.dot(x, self.W_h) + np.dot(r * h_prev, self.U_h))
-            # New state
-            h_new = (1.0 - z) * h_prev + z * h_candidate
-            return h_new
-
-        def forward(
-            self,
-            x: Any,
-            edge_index: Any,
-            node_ids: List[str],
-            update_cache: bool = True,
-        ) -> np.ndarray:
-            x_arr = np.array(x, dtype=np.float32)
-            N = len(node_ids)
-            h_prev_layer = np.dot(x_arr, self.W_in)
-
-            # Simple mean message passing over edges
-            adj = {i: [] for i in range(N)}
-            if edge_index is not None and len(edge_index) == 2:
-                for s, d in zip(edge_index[0], edge_index[1]):
-                    if s < N and d < N:
-                        adj[d].append(s)
-
-            for l in range(self.num_layers):
-                # Eq. 5: Spatial aggregation
-                h_tilde = np.zeros_like(h_prev_layer)
-                for dst, srcs in adj.items():
-                    if srcs:
-                        h_tilde[dst] = np.mean(h_prev_layer[srcs], axis=0)
-                    else:
-                        h_tilde[dst] = h_prev_layer[dst]
-
-                # Eq. 6: Recurrent update with per-node state cache
-                h_prev_time = self.state_cache.get_states(
-                    layer_idx=l, node_ids=node_ids, use_torch=False
-                )
-                h_curr = self._gru_cell_step(h_tilde, h_prev_time)
-                h_prev_layer = h_curr
-
-                # Eq. 7: Cache update
-                if update_cache:
-                    self.state_cache.update_states(
-                        layer_idx=l, node_ids=node_ids, new_states=h_curr
-                    )
-
-            proj_h = np.dot(h_prev_layer, self.W_out)
-            if self.residual and self.out_dim == self.in_dim:
-                out = x_arr + proj_h
-            else:
-                out = proj_h
-            return out
-
-        def save_checkpoint(self, path: str) -> None:
-            """Saves NumPy model weights to disk."""
-            import os
-            os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
-            weights = {
-                "W_in": self.W_in,
-                "W_z": self.W_z,
-                "U_z": self.U_z,
-                "W_r": self.W_r,
-                "U_r": self.U_r,
-                "W_h": self.W_h,
-                "U_h": self.U_h,
-                "W_out": self.W_out,
-            }
-            np.savez(path, **weights)
-            logger.info(f"Saved NumPy ROLAND checkpoint to {path}")
-
-        def load_checkpoint(self, path: str) -> bool:
-            """Loads NumPy model weights from disk."""
-            import os
-            actual_path = path if os.path.exists(path) else f"{path}.npz"
-            if not os.path.exists(actual_path):
-                return False
-            try:
-                data = np.load(actual_path)
-                for k in ["W_in", "W_z", "U_z", "W_r", "U_r", "W_h", "U_h", "W_out"]:
-                    if k in data:
-                        setattr(self, k, data[k])
-                logger.info(f"Loaded NumPy ROLAND checkpoint from {actual_path}")
-                return True
-            except Exception as e:
-                logger.warning(f"Failed to load NumPy ROLAND checkpoint from {actual_path}: {e}")
-                return False
+    raise ValueError("PyTorch Not installed.")
