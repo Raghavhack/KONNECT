@@ -310,7 +310,7 @@ def train_roland(
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Train ROLAND GRU on dynamic graph snapshots via Truncated-BPTT")
     parser.add_argument("--docs-dir", type=str, default="", help="Path to held-out documents")
-    parser.add_argument("--epochs", type=int, default=5, help="Number of training epochs")
+    parser.add_argument("--epochs", type=int, default=1000, help="Number of training epochs")
     parser.add_argument("--lr", type=float, default=0.005, help="Learning rate")
     parser.add_argument("--window-size", type=int, default=3, help="Truncated-BPTT window size")
     parser.add_argument("--save-path", type=str, default="", help="Path to save trained model weights")
