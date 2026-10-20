@@ -33,6 +33,7 @@ Guidelines:
 2. Every relationship must connect two entities present in the entities list or clearly identifiable.
 3. Ensure descriptions are grounded strictly in the provided text.
 4. Do not include markdown formatting or commentary, only raw JSON.
+5. Extract at most 15 entities and at most 20 relationships, keeping only the most important ones. Keep every description under 25 words.
 """
 
 ENTITY_DISAMBIGUATION_PROMPT = """You are an entity resolution expert.
