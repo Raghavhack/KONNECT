@@ -3,6 +3,7 @@ Unified LLM Client Adapter for OpenAI and Anthropic.
 Implements exponential backoff with jitter (max 5 retries) per Backend Architecture specifications.
 """
 
+import os
 import time
 import random
 import logging
@@ -43,6 +44,8 @@ class LLMClient:
         self.provider = provider.lower()
         self.max_retries = max_retries
         self.base_delay = base_delay
+        self.simulated_calls = 0
+        self.strict = os.getenv("BENCH_STRICT_LLM", "0") == "1"
 
         # Clients
         self.openai_client = None
@@ -103,6 +106,9 @@ class LLMClient:
 
                 # 3. Offline simulation fallback (when no API key configured)
                 else:
+                    if self.strict:
+                        raise RuntimeError("LLM unavailable; refusing to simulate in benchmark mode")
+                    self.simulated_calls += 1
                     return self._simulate_response(prompt, system_prompt)
 
             except Exception as e:
@@ -115,6 +121,9 @@ class LLMClient:
                 )
                 if attempt == self.max_retries - 1:
                     logger.error("Max retries exceeded for LLM call. Falling back to local synthesizer.")
+                    if self.strict:
+                        raise RuntimeError("LLM unavailable; refusing to simulate in benchmark mode")
+                    self.simulated_calls += 1
                     return self._simulate_response(prompt, system_prompt)
                 time.sleep(wait_time)
 

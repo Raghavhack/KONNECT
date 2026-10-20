@@ -1,0 +1,1042 @@
+[
+  {
+    "_id": "db787f5c0bdc11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What nationality is the director of film Detachment (Film)?",
+    "answer": "British",
+    "gold_docs": [
+      "tony_kaye_director",
+      "detachment_film"
+    ],
+    "supporting_facts": [
+      [
+        "Detachment (film)",
+        0
+      ],
+      [
+        "Tony Kaye (director)",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Detachment (film)",
+      "John Farrell (businessman)",
+      "Ian Barry (director)",
+      "Tony Kaye (director)",
+      "Michael Govan",
+      "John Donatich",
+      "Brian Kennedy (gallery director)",
+      "Peter Levin",
+      "Olav Aaraas",
+      "Dana Blankstein"
+    ]
+  },
+  {
+    "_id": "06dda24508ef11ebbda8ac1f6bf848b6",
+    "type": "comparison",
+    "question": "Was Bernd Meinunger or Radmila Savi\u0107evi\u0107 born first?",
+    "answer": "Radmila Savi\u0107evi\u0107",
+    "gold_docs": [
+      "radmila_savi_evi",
+      "bernd_meinunger"
+    ],
+    "supporting_facts": [
+      [
+        "Bernd Meinunger",
+        0
+      ],
+      [
+        "Radmila Savi\u0107evi\u0107",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Greg A. Hill (artist)",
+      "Wale Adebanwi",
+      "Hartley Lobban",
+      "Wesley Barresi",
+      "Radmila Savi\u0107evi\u0107",
+      "Henry Moore (cricketer)",
+      "Bernd Meinunger",
+      "Vukan Savi\u0107evi\u0107",
+      "John McMahon (Surrey and Somerset cricketer)",
+      "John Allen (Oxford University cricketer)"
+    ]
+  },
+  {
+    "_id": "f1a04d600bdb11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What is the place of birth of the director of film Dollar (1938 Film)?",
+    "answer": "Helsingfors",
+    "gold_docs": [
+      "dollar_1938_film",
+      "gustaf_molander"
+    ],
+    "supporting_facts": [
+      [
+        "Dollar (1938 film)",
+        0
+      ],
+      [
+        "Gustaf Molander",
+        4
+      ]
+    ],
+    "context_titles": [
+      "Caroline Dollar",
+      "Olav Aaraas",
+      "Dollar (1938 film)",
+      "Ian Barry (director)",
+      "Drew Dollar",
+      "John Dollar",
+      "Gustaf Molander",
+      "Aubrey Dollar",
+      "Peter Levin",
+      "Negro Dollar"
+    ]
+  },
+  {
+    "_id": "a4ad03b2086211ebbd5dac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who was born later, Henny Meijer or J\u00e9r\u00e9my Maison?",
+    "answer": "J\u00e9r\u00e9my Maison",
+    "gold_docs": [
+      "henny_meijer",
+      "j_r_my_maison"
+    ],
+    "supporting_facts": [
+      [
+        "Henny Meijer",
+        0
+      ],
+      [
+        "J\u00e9r\u00e9my Maison",
+        0
+      ]
+    ],
+    "context_titles": [
+      "J\u00e9r\u00e9my Maison",
+      "Judah Even Shemuel",
+      "Alexander Fuks",
+      "Jacob Knaani",
+      "W. Augustus Barratt",
+      "Dorothee Metlitzki",
+      "Jo\u00ebl Henry (journalist)",
+      "Henny Meijer",
+      "Edwin Richards (field hockey)",
+      "Catherine I of Russia"
+    ]
+  },
+  {
+    "_id": "8a6eec600bda11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the director of film Ninja Iii: The Domination born?",
+    "answer": "Poland",
+    "gold_docs": [
+      "sam_firstenberg",
+      "ninja_iii_the_domination"
+    ],
+    "supporting_facts": [
+      [
+        "Ninja III: The Domination",
+        1
+      ],
+      [
+        "Sam Firstenberg",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Ian Barry (director)",
+      "S. N. Mathur",
+      "Jesse E. Hobson",
+      "Jason Moore (director)",
+      "Olav Aaraas",
+      "Brian Kennedy (gallery director)",
+      "Sam Firstenberg",
+      "Ninja III: The Domination",
+      "Peter Levin",
+      "Dana Blankstein"
+    ]
+  },
+  {
+    "_id": "fd25d7100bd911eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the husband of Maria Muldaur born?",
+    "answer": "Pelham, New York",
+    "gold_docs": [
+      "maria_muldaur",
+      "geoff_muldaur"
+    ],
+    "supporting_facts": [
+      [
+        "Maria Muldaur",
+        2
+      ],
+      [
+        "Geoff Muldaur",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Lapidoth",
+      "Stan Marks",
+      "James Randall Marsh",
+      "Jon Leach",
+      "Devisingh Ransingh Shekhawat",
+      "Andrew Upton",
+      "Geoff Muldaur",
+      "Stan Rice",
+      "Maria Muldaur",
+      "Alan Pownall"
+    ]
+  },
+  {
+    "_id": "46c87e080bdb11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Who was the teacher of the composer of song Prometheus (Art Song)?",
+    "answer": "Antonio Salieri",
+    "gold_docs": [
+      "franz_schubert",
+      "prometheus_art_song"
+    ],
+    "supporting_facts": [
+      [
+        "Prometheus (art song)",
+        0
+      ],
+      [
+        "Franz Schubert",
+        7
+      ]
+    ],
+    "context_titles": [
+      "Periclytus",
+      "Rubellius Blandus",
+      "Prometheus (art song)",
+      "Philip Cranmer",
+      "Alonso Mudarra",
+      "Franz Schubert",
+      "Giacomo Antonio Perti",
+      "Apollonius Cronus",
+      "Barbara Goleman",
+      "Jean Mouton"
+    ]
+  },
+  {
+    "_id": "2aa02b3a0bdc11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What is the award that the director of film Jeevan Mukt got?",
+    "answer": "Filmfare Award",
+    "gold_docs": [
+      "jeevan_mukt",
+      "sudhendu_roy"
+    ],
+    "supporting_facts": [
+      [
+        "Jeevan Mukt",
+        0
+      ],
+      [
+        "Sudhendu Roy",
+        2
+      ]
+    ],
+    "context_titles": [
+      "John Donatich",
+      "Dana Blankstein",
+      "Peter Levin",
+      "Olav Aaraas",
+      "Jeevan Mukt",
+      "Ian Barry (director)",
+      "Etan Boritzer",
+      "Sudhendu Roy",
+      "John Farrell (businessman)",
+      "Michael Govan"
+    ]
+  },
+  {
+    "_id": "fd56936708a811ebbd7fac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who is older, Marius Mitu or Bea Palya?",
+    "answer": "Marius Mitu",
+    "gold_docs": [
+      "bea_palya",
+      "marius_mitu"
+    ],
+    "supporting_facts": [
+      [
+        "Marius Mitu",
+        0
+      ],
+      [
+        "Bea Palya",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Bea Saw",
+      "Robin Ka\u010danikli\u0107",
+      "Ognen Stojanovski",
+      "Marius Mitu",
+      "Colin Reader",
+      "Fran\u00e7ois van der Merwe",
+      "Aleksandar Loma",
+      "Jovan Markovski",
+      "Bea Palya",
+      "Filip Arsenijevi\u0107"
+    ]
+  },
+  {
+    "_id": "c36b35bf08c911ebbd92ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director died earlier, Hendes Store Aften or You'Re Missing The Point?",
+    "answer": "You'Re Missing The Point",
+    "gold_docs": [
+      "juan_bustillo_oro",
+      "hendes_store_aften",
+      "you_re_missing_the_point",
+      "annelise_reenberg"
+    ],
+    "supporting_facts": [
+      [
+        "Hendes store aften",
+        0
+      ],
+      [
+        "You're Missing the Point",
+        1
+      ],
+      [
+        "Annelise Reenberg",
+        0
+      ],
+      [
+        "Juan Bustillo Oro",
+        0
+      ]
+    ],
+    "context_titles": [
+      "You're Missing the Point",
+      "Thulasi (1987 film)",
+      "Julie Holland",
+      "Ravina (actress)",
+      "Annelise Reenberg",
+      "Le Masque de la M\u00e9duse",
+      "Juan Bustillo Oro",
+      "Querelle",
+      "Hendes store aften",
+      "Mohsen Eslamzadeh"
+    ]
+  },
+  {
+    "_id": "0cf78b6c0bde11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the place of burial of the composer of film The Inner Scar?",
+    "answer": "Berlin",
+    "gold_docs": [
+      "the_inner_scar",
+      "nico"
+    ],
+    "supporting_facts": [
+      [
+        "The Inner Scar",
+        0
+      ],
+      [
+        "Nico",
+        7
+      ]
+    ],
+    "context_titles": [
+      "Abe Meyer",
+      "Henri Verdun",
+      "The Inner Scar",
+      "Thomas Morse",
+      "Bert Grund",
+      "Walter Ulfig",
+      "Emperor Daigo",
+      "Nico",
+      "Tarcisio Fusco",
+      "Alonso Mudarra"
+    ]
+  },
+  {
+    "_id": "abc451060bdb11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Why did Fahd Hariri's father die?",
+    "answer": "assassination",
+    "gold_docs": [
+      "fahd_hariri",
+      "rafic_hariri"
+    ],
+    "supporting_facts": [
+      [
+        "Fahd Hariri",
+        0
+      ],
+      [
+        "Rafic Hariri",
+        3
+      ]
+    ],
+    "context_titles": [
+      "Tasha Smith",
+      "Charibert I",
+      "Rafic Hariri",
+      "Ilir Hoxha",
+      "Richard T. Jones",
+      "Sharon Leal",
+      "Michael Jai White",
+      "Lamman Rucker",
+      "Fahd Hariri",
+      "Denise Boutte"
+    ]
+  },
+  {
+    "_id": "88c8cfc80bdc11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the performer of song 11 Pm (Song) born?",
+    "answer": "Medell\u00edn",
+    "gold_docs": [
+      "maluma_singer",
+      "11_pm_song"
+    ],
+    "supporting_facts": [
+      [
+        "11 PM (song)",
+        0
+      ],
+      [
+        "Maluma (singer)",
+        1
+      ]
+    ],
+    "context_titles": [
+      "Wonny Song",
+      "Billy Milano",
+      "11 PM (song)",
+      "Hwang Te-song",
+      "Liu Song (snooker player)",
+      "Xue Song (badminton)",
+      "Maluma (singer)",
+      "Bernie Bonvoisin",
+      "Heng Kim Song",
+      "So Tae-song"
+    ]
+  },
+  {
+    "_id": "ba68804e08fa11ebbdacac1f6bf848b6",
+    "type": "comparison",
+    "question": "Which film was released earlier, Personal Velocity: Three Portraits or Ami Aar Amar Girlfriends?",
+    "answer": "Personal Velocity: Three Portraits",
+    "gold_docs": [
+      "ami_aar_amar_girlfriends",
+      "personal_velocity_three_portraits"
+    ],
+    "supporting_facts": [
+      [
+        "Personal Velocity: Three Portraits",
+        0
+      ],
+      [
+        "Ami Aar Amar Girlfriends",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Personal Velocity: Three Portraits",
+      "Lloyd (film)",
+      "Ami Aar Amar Girlfriends",
+      "The Wonderful World of Captain Kuhio",
+      "May Lamok sa Loob ng Kulambo",
+      "Invasion of the Neptune Men",
+      "Rakka (film)",
+      "Shirin Farhad (1931 film)",
+      "Coney Island Baby (film)",
+      "Royal Tramp II"
+    ]
+  },
+  {
+    "_id": "0ba11cfd084a11ebbd55ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director died later, Beyaz \u00d6l\u00fcm or Raggedy Rose?",
+    "answer": "Beyaz \u00d6l\u00fcm",
+    "gold_docs": [
+      "raggedy_rose",
+      "beyaz_l_m",
+      "richard_wallace_director",
+      "halit_refi"
+    ],
+    "supporting_facts": [
+      [
+        "Beyaz \u00d6l\u00fcm",
+        0
+      ],
+      [
+        "Raggedy Rose",
+        1
+      ],
+      [
+        "Halit Refi\u011f",
+        0
+      ],
+      [
+        "Richard Wallace (director)",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Le Masque de la M\u00e9duse",
+      "Thulasi (1987 film)",
+      "Beyaz \u00d6l\u00fcm",
+      "Richard Wallace (director)",
+      "Halit Refi\u011f",
+      "Raggedy Rose",
+      "Querelle",
+      "Ravina (actress)",
+      "Mohsen Eslamzadeh",
+      "Witold Leszczy\u0144ski"
+    ]
+  },
+  {
+    "_id": "52b8ea380bd911eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Who is the founder of the company which published Die Sprache?",
+    "answer": "Otto Harrassowitz",
+    "gold_docs": [
+      "harrassowitz_verlag",
+      "die_sprache"
+    ],
+    "supporting_facts": [
+      [
+        "Die Sprache",
+        3
+      ],
+      [
+        "Harrassowitz Verlag",
+        2
+      ]
+    ],
+    "context_titles": [
+      "Pink Pages",
+      "Andrew X. Pham",
+      "List of R. I. S. \u2013 Die Sprache der Toten episodes",
+      "Die Sprache",
+      "Harrassowitz Verlag",
+      "John De Margheriti",
+      "Web enhancement",
+      "Chappell & Co.",
+      "Cyrus Massoumi",
+      "Sky Dayton"
+    ]
+  },
+  {
+    "_id": "422b014608ab11ebbd82ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director born first, Ekti Raat or Le P\u00e9riscope?",
+    "answer": "Le P\u00e9riscope",
+    "gold_docs": [
+      "ekti_raat",
+      "abel_gance",
+      "chitta_basu_director",
+      "le_p_riscope"
+    ],
+    "supporting_facts": [
+      [
+        "Ekti Raat",
+        0
+      ],
+      [
+        "Le p\u00e9riscope",
+        0
+      ],
+      [
+        "Chitta Basu (director)",
+        2
+      ],
+      [
+        "Abel Gance",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Hartley Lobban",
+      "Chitta Basu (director)",
+      "Le p\u00e9riscope",
+      "Abel Gance",
+      "Wale Adebanwi",
+      "Ekti Raat",
+      "John McMahon (Surrey and Somerset cricketer)",
+      "Sepideh Farsi",
+      "Henry Moore (cricketer)",
+      "Claude Weisz"
+    ]
+  },
+  {
+    "_id": "2a13a676090111ebbdadac1f6bf848b6",
+    "type": "comparison",
+    "question": "Which film came out earlier, It'S Our Life! or Maximum Ride (Film)?",
+    "answer": "It'S Our Life!",
+    "gold_docs": [
+      "it_s_our_life",
+      "maximum_ride_film"
+    ],
+    "supporting_facts": [
+      [
+        "It's Our Life!",
+        2
+      ],
+      [
+        "Maximum Ride (film)",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Mamma (1982 film)",
+      "Life or Death",
+      "Maximum Ride (film)",
+      "Operation Leopard",
+      "Angel: A Maximum Ride Novel",
+      "Maximum Ride: The Angel Experiment",
+      "It's Our Time",
+      "Life or Death (film)",
+      "It's Our Life!",
+      "MAX: A Maximum Ride Novel"
+    ]
+  },
+  {
+    "_id": "eb7ece320bdd11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where did Claudio Silva (Computer Scientist)'s wife graduate from?",
+    "answer": "Stony Brook University",
+    "gold_docs": [
+      "claudio_silva_computer_scientist",
+      "juliana_freire"
+    ],
+    "supporting_facts": [
+      [
+        "Claudio Silva (computer scientist)",
+        2
+      ],
+      [
+        "Juliana Freire",
+        2
+      ]
+    ],
+    "context_titles": [
+      "Claudio Silva da Fonseca",
+      "Robert Paul Smith",
+      "Andrew Allen (singer)",
+      "Ron \"Bumblefoot\" Thal",
+      "Benny Rubinstein",
+      "Donnie Elbert",
+      "Joseph J. Sullivan (vaudeville)",
+      "Juliana Freire",
+      "Claudio Silva (computer scientist)",
+      "Nancy Baron"
+    ]
+  },
+  {
+    "_id": "d1b4d4100bdd11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the place of death of the composer of film There Goes My Heart (Film)?",
+    "answer": "Hollywood, California",
+    "gold_docs": [
+      "there_goes_my_heart_film",
+      "marvin_hatley"
+    ],
+    "supporting_facts": [
+      [
+        "There Goes My Heart (film)",
+        3
+      ],
+      [
+        "Marvin Hatley",
+        9
+      ]
+    ],
+    "context_titles": [
+      "Bert Grund",
+      "Henri Verdun",
+      "Alonso Mudarra",
+      "There Goes My Girl",
+      "Abe Meyer",
+      "Tarcisio Fusco",
+      "Walter Ulfig",
+      "Marvin Hatley",
+      "There Goes My Heart (film)",
+      "Thomas Morse"
+    ]
+  },
+  {
+    "_id": "b85cefa708dc11ebbd9dac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director died first, Song Of The City or The City Of Dim Faces?",
+    "answer": "Song Of The City",
+    "gold_docs": [
+      "errol_taggart",
+      "song_of_the_city",
+      "george_melford",
+      "the_city_of_dim_faces"
+    ],
+    "supporting_facts": [
+      [
+        "Song of the City",
+        0
+      ],
+      [
+        "The City of Dim Faces",
+        0
+      ],
+      [
+        "Errol Taggart",
+        0
+      ],
+      [
+        "George Melford",
+        0
+      ]
+    ],
+    "context_titles": [
+      "City of Campbelltown (South Australia)",
+      "Capital City",
+      "Errol Taggart",
+      "The City of the Dead",
+      "George Melford",
+      "The City of Dim Faces",
+      "Song of the City",
+      "Song of the Birds",
+      "Song of Songs (disambiguation)",
+      "City of Campbelltown"
+    ]
+  },
+  {
+    "_id": "847df1960baf11ebab90acde48001122",
+    "type": "inference",
+    "question": "Who is Daniel O'Brien, 4Th Viscount Clare's paternal grandmother?",
+    "answer": "Honora O'Brien",
+    "gold_docs": [
+      "daniel_o_brien_4th_viscount_clare",
+      "daniel_o_brien_3rd_viscount_clare"
+    ],
+    "supporting_facts": [
+      [
+        "Daniel O'Brien, 4th Viscount Clare",
+        0
+      ],
+      [
+        "Daniel O'Brien, 3rd Viscount Clare",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Daniel O'Brien, 3rd Viscount Clare",
+      "Charles O'Brien, 5th Viscount Clare",
+      "Daniel O'Brien, 1st Viscount Clare",
+      "Mona Hopton Bell",
+      "Hannah Arnold",
+      "Daniel O'Brien, 4th Viscount Clare",
+      "Tjuyu",
+      "Connor O'Brien, 2nd Viscount Clare",
+      "Hubba bint Hulail",
+      "Kaoru Hatoyama"
+    ]
+  },
+  {
+    "_id": "8ed9d4420bdd11eba7f7acde48001122",
+    "type": "compositional",
+    "question": "Where was the place of burial of Elizabeth Boleyn, Countess Of Wiltshire's husband?",
+    "answer": "Hever",
+    "gold_docs": [
+      "thomas_boleyn_1st_earl_of_wiltshire",
+      "elizabeth_boleyn_countess_of_wiltshire"
+    ],
+    "supporting_facts": [
+      [
+        "Elizabeth Boleyn, Countess of Wiltshire",
+        2
+      ],
+      [
+        "Thomas Boleyn, 1st Earl of Wiltshire",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Joan II, Countess of Burgundy",
+      "Thomas Boleyn, 1st Earl of Wiltshire",
+      "Elizabeth Boleyn, Countess of Wiltshire",
+      "Anne Yelverton",
+      "Elizabeth Neville (police officer)",
+      "Elizabeth Boleyn (lady-in-waiting)",
+      "Emperor Daigo",
+      "Anna Maria of Solms-Sonnewalde",
+      "Marie d'Albret, Countess of Rethel",
+      "Robert Awdry"
+    ]
+  },
+  {
+    "_id": "d13381ae08da11ebbd9cac1f6bf848b6",
+    "type": "comparison",
+    "question": "Who was born later, Joseph J. Magliocco or Viktoriya Zeynep G\u00fcne\u015f?",
+    "answer": "Viktoriya Zeynep G\u00fcne\u015f",
+    "gold_docs": [
+      "viktoriya_zeynep_g_ne",
+      "joseph_j_magliocco"
+    ],
+    "supporting_facts": [
+      [
+        "Joseph J. Magliocco",
+        0
+      ],
+      [
+        "Viktoriya Zeynep G\u00fcne\u015f",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Judah Even Shemuel",
+      "Joseph J. Magliocco",
+      "Catherine I of Russia",
+      "Alexander Fuks",
+      "Olga Lepeshinskaya (biologist)",
+      "Josse Le Plat",
+      "W. Augustus Barratt",
+      "Viktoriya Zeynep G\u00fcne\u015f",
+      "Louis Guss",
+      "Joseph Magliocco"
+    ]
+  },
+  {
+    "_id": "62717040085911ebbd5bac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director born later, Best Man Wins or Mrs Caldicot'S Cabbage War?",
+    "answer": "Mrs Caldicot'S Cabbage War",
+    "gold_docs": [
+      "best_man_wins",
+      "mrs_caldicot_s_cabbage_war",
+      "ian_sharp",
+      "john_sturges"
+    ],
+    "supporting_facts": [
+      [
+        "Best Man Wins",
+        0
+      ],
+      [
+        "Mrs Caldicot's Cabbage War",
+        0
+      ],
+      [
+        "John Sturges",
+        0
+      ],
+      [
+        "Ian Sharp",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Elizabeth Youatt",
+      "Claude Weisz",
+      "Mrs Webb",
+      "Ian Sharp",
+      "Best Man Wins",
+      "The Best Man (2005 film)",
+      "Gordon Sackville",
+      "W. Augustus Barratt",
+      "John Sturges",
+      "Mrs Caldicot's Cabbage War"
+    ]
+  },
+  {
+    "_id": "6d1b9cfc08b611ebbd88ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director who died earlier, Three Little Sew And Sews or Jackass Mail?",
+    "answer": "Jackass Mail",
+    "gold_docs": [
+      "norman_z_mcleod",
+      "three_little_sew_and_sews",
+      "jackass_mail",
+      "del_lord"
+    ],
+    "supporting_facts": [
+      [
+        "Three Little Sew and Sews",
+        0
+      ],
+      [
+        "Jackass Mail",
+        0
+      ],
+      [
+        "Del Lord",
+        0
+      ],
+      [
+        "Norman Z. McLeod",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Abhishek Saxena",
+      "Three Little Sew and Sews",
+      "Jackass Mail",
+      "Dorothy Compton",
+      "G. Marthandan",
+      "Drew Esocoff",
+      "Del Lord",
+      "Ben Palmer",
+      "Elliot Silverstein",
+      "Norman Z. McLeod"
+    ]
+  },
+  {
+    "_id": "2f09d429089e11ebbd78ac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director who was born earlier, The Appeal To Conscience or Pretty Persuasion?",
+    "answer": "The Appeal To Conscience",
+    "gold_docs": [
+      "pretty_persuasion",
+      "marcos_siega",
+      "karl_anton",
+      "the_appeal_to_conscience"
+    ],
+    "supporting_facts": [
+      [
+        "The Appeal to Conscience",
+        0
+      ],
+      [
+        "Pretty Persuasion",
+        0
+      ],
+      [
+        "Karl Anton",
+        0
+      ],
+      [
+        "Marcos Siega",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Pretty Persuasion",
+      "Rumbi Katedza",
+      "Abhishek Saxena",
+      "The Appeal to Conscience",
+      "Hassan Zee",
+      "Marcos Siega",
+      "Karl Anton",
+      "Richard Young (cinematographer)",
+      "Edward Yates",
+      "Ben Palmer"
+    ]
+  },
+  {
+    "_id": "55a5a0060bd911eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What is the date of birth of Magnus I, Duke Of Mecklenburg's mother?",
+    "answer": "1317",
+    "gold_docs": [
+      "euphemia_of_sweden",
+      "magnus_i_duke_of_mecklenburg"
+    ],
+    "supporting_facts": [
+      [
+        "Magnus I, Duke of Mecklenburg",
+        1
+      ],
+      [
+        "Euphemia of Sweden",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Henry III, Duke of Mecklenburg",
+      "John VI, Duke of Mecklenburg",
+      "John III, Duke of Mecklenburg-Stargard",
+      "Christopher, Duke of Mecklenburg",
+      "Eilika of Saxony",
+      "Euphemia of Sweden",
+      "Magnus I, Duke of Mecklenburg",
+      "Henry IV, Duke of Mecklenburg",
+      "Eric II, Duke of Mecklenburg",
+      "John I, Duke of Mecklenburg-Stargard"
+    ]
+  },
+  {
+    "_id": "de498b840bd911eba7f7acde48001122",
+    "type": "compositional",
+    "question": "What nationality is the composer of film Four Women (1975 Film)?",
+    "answer": "American",
+    "gold_docs": [
+      "four_women_1975_film",
+      "nina_simone"
+    ],
+    "supporting_facts": [
+      [
+        "Four Women (1975 film)",
+        0
+      ],
+      [
+        "Nina Simone",
+        0
+      ]
+    ],
+    "context_titles": [
+      "Thomas Morse",
+      "Tarcisio Fusco",
+      "Nina Simone",
+      "Henri Verdun",
+      "Bert Grund",
+      "Abe Meyer",
+      "Four Women (1975 film)",
+      "Alonso Mudarra",
+      "Amedeo Escobar",
+      "Walter Ulfig"
+    ]
+  },
+  {
+    "_id": "dcab273608de11ebbd9fac1f6bf848b6",
+    "type": "bridge_comparison",
+    "question": "Which film has the director born earlier, The Color Of Money or Do Be Quick?",
+    "answer": "Do Be Quick",
+    "gold_docs": [
+      "do_be_quick",
+      "martin_scorsese",
+      "stanislav_strnad",
+      "the_color_of_money"
+    ],
+    "supporting_facts": [
+      [
+        "The Color of Money",
+        0
+      ],
+      [
+        "Do Be Quick",
+        0
+      ],
+      [
+        "Martin Scorsese",
+        0
+      ],
+      [
+        "Stanislav Strnad",
+        0
+      ]
+    ],
+    "context_titles": [
+      "The Color of Paradise",
+      "Do Be Quick",
+      "Martin Scorsese",
+      "Evert van Linge",
+      "Sepideh Farsi",
+      "Claude Weisz",
+      "Karen O'Hara",
+      "Stanislav Strnad",
+      "The Color of Money",
+      "Jacques D\u00e9combe"
+    ]
+  }
+]

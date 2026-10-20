@@ -7,6 +7,7 @@ gradient computation and memory through window-based temporal state truncation.
 """
 
 import logging
+import random
 from typing import List, Dict, Any, Optional
 import numpy as np
 
@@ -84,6 +85,10 @@ class TruncatedBPTTTrainer:
             logger.info("PyTorch not present. Skipping gradient training loop.")
             return [0.0]
 
+        random.seed(42)
+        np.random.seed(42)
+        torch.manual_seed(42)
+
         device = next(self.model.parameters()).device
         self.model.train()
         loss_history = []
@@ -113,9 +118,10 @@ class TruncatedBPTTTrainer:
                         update_cache=True,
                     )
 
-                    # Compute Link Prediction loss
+                    # Compute Link Prediction loss with SCORE_SCALE and anchor loss
+                    SCORE_SCALE, ANCHOR_WEIGHT = 10.0, 3.5
                     pos_src, pos_dst = pos_edge_index[0], pos_edge_index[1]
-                    pos_scores = (embeddings[pos_src] * embeddings[pos_dst]).sum(dim=-1)
+                    pos_scores = SCORE_SCALE * (embeddings[pos_src] * embeddings[pos_dst]).sum(dim=-1)
                     pos_labels = torch.ones_like(pos_scores)
 
                     loss = self.criterion(pos_scores, pos_labels)
@@ -124,10 +130,14 @@ class TruncatedBPTTTrainer:
                     if snapshot.neg_edges is not None and snapshot.neg_edges.shape[1] > 0:
                         neg_edge_index = torch.tensor(snapshot.neg_edges, dtype=torch.long, device=device)
                         neg_src, neg_dst = neg_edge_index[0], neg_edge_index[1]
-                        neg_scores = (embeddings[neg_src] * embeddings[neg_dst]).sum(dim=-1)
+                        neg_scores = SCORE_SCALE * (embeddings[neg_src] * embeddings[neg_dst]).sum(dim=-1)
                         neg_labels = torch.zeros_like(neg_scores)
                         neg_loss = self.criterion(neg_scores, neg_labels)
                         loss = loss + neg_loss
+
+                    x_unit = torch.nn.functional.normalize(x, dim=-1)
+                    anchor = (1.0 - (embeddings * x_unit).sum(dim=-1)).mean()
+                    loss = loss + ANCHOR_WEIGHT * anchor
 
                     window_loss = window_loss + loss
 

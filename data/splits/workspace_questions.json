@@ -1,0 +1,273 @@
+[
+  {
+    "id": "wq_01",
+    "question": "How does KONNECT achieve bounded latency during document edits instead of full rebuilds?",
+    "gold_answer": "KONNECT uses bounded k-hop re-embedding via ROLAND dynamic GRU rather than retraining from scratch.",
+    "gold_docs": [
+      "konnect_synopsis",
+      "roland_paper"
+    ]
+  },
+  {
+    "id": "wq_02",
+    "question": "What retrieval algorithm does G-Retriever and KONNECT use to extract connected subgraphs?",
+    "gold_answer": "Prize-Collecting Steiner Tree (PCST) optimization.",
+    "gold_docs": [
+      "g_retriever_paper",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_03",
+    "question": "Why does GraphRAG use Leiden community detection instead of standard Louvain?",
+    "gold_answer": "Leiden guarantees internally well-connected communities and avoids disconnected modules produced by Louvain.",
+    "gold_docs": [
+      "graphrag_paper",
+      "leiden_algorithm_paper"
+    ]
+  },
+  {
+    "id": "wq_04",
+    "question": "What equations govern the spatial message passing and temporal recurrence in ROLAND?",
+    "gold_answer": "Spatial message passing is Eq. 5, recurrent temporal update via GRU is Eq. 6, and hierarchical layer passing is Eq. 7.",
+    "gold_docs": [
+      "roland_paper",
+      "gru_networks_paper"
+    ]
+  },
+  {
+    "id": "wq_05",
+    "question": "How do G-Retriever's node prizes connect to KONNECT's retrieval pipeline?",
+    "gold_answer": "G-Retriever derives node prizes from cosine similarity between question embeddings and node representations, which KONNECT adopts in its PCST retriever.",
+    "gold_docs": [
+      "g_retriever_paper",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_06",
+    "question": "What role does BullMQ and Redis play in KONNECT's document ingestion?",
+    "gold_answer": "BullMQ provides a queue with a 3000ms debounce window for OneDrive webhook notifications before dispatching to the intelligence service.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_07",
+    "question": "How does HippoRAG's multi-hop activation differ from PCST subgraph retrieval in G-Retriever?",
+    "gold_answer": "HippoRAG diffuses query activation using Personalized PageRank, while G-Retriever extracts minimal connected subgraphs via PCST optimization.",
+    "gold_docs": [
+      "hipporag_paper",
+      "g_retriever_paper"
+    ]
+  },
+  {
+    "id": "wq_08",
+    "question": "Which gating primitives in GRU enable ROLAND to maintain temporal hidden states across snapshots?",
+    "gold_answer": "The update gate and reset gate in the GRU cell regulate memory retention and candidate integration.",
+    "gold_docs": [
+      "gru_networks_paper",
+      "roland_paper"
+    ]
+  },
+  {
+    "id": "wq_09",
+    "question": "What embedding model and vector dimension does Neo4j use in the KONNECT intelligence service?",
+    "gold_answer": "384-dimensional all-MiniLM-L6-v2 embeddings.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_10",
+    "question": "How does GraphRAG's extraction process compare to HippoRAG's knowledge graph construction?",
+    "gold_answer": "GraphRAG uses LLM-based entity and claim extraction with community summarization, while HippoRAG uses open-information extraction with hippocampal indexing.",
+    "gold_docs": [
+      "graphrag_paper",
+      "hipporag_paper"
+    ]
+  },
+  {
+    "id": "wq_11",
+    "question": "What is the debounce quiet window configured in KONNECT's Node.js backend?",
+    "gold_answer": "3000 milliseconds.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_12",
+    "question": "Why does ROLAND employ Truncated Backpropagation Through Time (Truncated-BPTT)?",
+    "gold_answer": "To bound memory and gradient computation horizons during dynamic graph snapshot training.",
+    "gold_docs": [
+      "roland_paper",
+      "gru_networks_paper"
+    ]
+  },
+  {
+    "id": "wq_13",
+    "question": "What similarity threshold is configured for Redis semantic caching in KONNECT?",
+    "gold_answer": "0.92 cosine similarity threshold.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_14",
+    "question": "What happens when a document edit arrives in KONNECT's intelligence pipeline?",
+    "gold_answer": "KONNECT computes a graph delta, updates Neo4j entities, and re-embeds affected nodes in a 2-hop neighborhood using ROLAND.",
+    "gold_docs": [
+      "konnect_synopsis",
+      "backend_architecture_doc",
+      "roland_paper"
+    ]
+  },
+  {
+    "id": "wq_15",
+    "question": "How does Leiden ensure community partitions do not deteriorate over hierarchical passes?",
+    "gold_answer": "By performing a sub-community refinement step that guarantees all communities remain well-connected.",
+    "gold_docs": [
+      "leiden_algorithm_paper",
+      "graphrag_paper"
+    ]
+  },
+  {
+    "id": "wq_16",
+    "question": "What port does the KONNECT gRPC servicer operate on?",
+    "gold_answer": "Port 50051.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_17",
+    "question": "How are edge costs defined in G-Retriever's PCST objective?",
+    "gold_answer": "Edge costs act as penalties to prevent retrieving overly expansive or irrelevant graph paths.",
+    "gold_docs": [
+      "g_retriever_paper",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_18",
+    "question": "What is the default k-hop neighborhood bounded by KONNECT during incremental updates?",
+    "gold_answer": "k = 2 hops.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_19",
+    "question": "How does HippoRAG address the limitation of standard vector RAG on complex multi-hop queries?",
+    "gold_answer": "By diffusing query activation across associative paths in an open-IE graph via Personalized PageRank.",
+    "gold_docs": [
+      "hipporag_paper",
+      "graphrag_paper"
+    ]
+  },
+  {
+    "id": "wq_20",
+    "question": "In ROLAND, where are per-node temporal hidden states maintained?",
+    "gold_answer": "In a per-node hierarchical state cache indexed by layer and entity identifier.",
+    "gold_docs": [
+      "roland_paper",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_21",
+    "question": "What OAuth2 provider and scopes does KONNECT's Node.js backend integrate with?",
+    "gold_answer": "Microsoft Azure Entra ID with OneDrive file access permissions.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_22",
+    "question": "Why is the GRU cell chosen over LSTM for ROLAND dynamic graph state tracking?",
+    "gold_answer": "GRU has fewer parameters, trains faster, and offers efficient update and reset gating for temporal hidden states.",
+    "gold_docs": [
+      "gru_networks_paper",
+      "roland_paper"
+    ]
+  },
+  {
+    "id": "wq_23",
+    "question": "What community summaries are generated in GraphRAG to answer global queries?",
+    "gold_answer": "Pre-computed hierarchical community reports produced by LLMs over Leiden partitions.",
+    "gold_docs": [
+      "graphrag_paper",
+      "leiden_algorithm_paper"
+    ]
+  },
+  {
+    "id": "wq_24",
+    "question": "What optimization objective does Truncated-BPTT use to train ROLAND?",
+    "gold_answer": "Link prediction loss using positive and negative sampled edges across snapshots.",
+    "gold_docs": [
+      "roland_paper",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_25",
+    "question": "How does KONNECT prevent semantic cache leakage across different benchmark runs?",
+    "gold_answer": "By running FLUSHDB on Redis and clearing the ROLAND per-node state cache before each run.",
+    "gold_docs": [
+      "backend_architecture_doc",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_26",
+    "question": "What guarantees does Leiden provide over earlier modularity optimization heuristics?",
+    "gold_answer": "Guaranteed well-connected communities and asymptotic speed improvements over Louvain.",
+    "gold_docs": [
+      "leiden_algorithm_paper",
+      "graphrag_paper"
+    ]
+  },
+  {
+    "id": "wq_27",
+    "question": "How does G-Retriever integrate extracted subgraphs into LLMs?",
+    "gold_answer": "By linearizing nodes and edges and feeding them as soft prompts to the language model.",
+    "gold_docs": [
+      "g_retriever_paper",
+      "graphrag_paper"
+    ]
+  },
+  {
+    "id": "wq_28",
+    "question": "What is the primary motivation for maintaining a dynamic graph in KONNECT?",
+    "gold_answer": "To support real-time incremental knowledge graph updates without paying the high latency cost of full rebuilds.",
+    "gold_docs": [
+      "konnect_synopsis",
+      "roland_paper"
+    ]
+  },
+  {
+    "id": "wq_29",
+    "question": "How does the Goemans-Williamson algorithm relate to PCST retrieval?",
+    "gold_answer": "It provides a 2-approximation pruning algorithm to solve the Prize-Collecting Steiner Tree problem.",
+    "gold_docs": [
+      "g_retriever_paper",
+      "konnect_synopsis"
+    ]
+  },
+  {
+    "id": "wq_30",
+    "question": "What are the two tiers of caching implemented in KONNECT?",
+    "gold_answer": "A Redis semantic cache for query answers and an in-memory per-node temporal state cache for GNN representations.",
+    "gold_docs": [
+      "konnect_synopsis",
+      "backend_architecture_doc"
+    ]
+  }
+]

@@ -14,8 +14,9 @@ from pathlib import Path
 from typing import List, Dict, Any, Tuple
 import numpy as np
 
-# Ensure ai_service is in sys.path
+# Ensure ai_service and repo root are in sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..")))
 
 from app.config import settings
 from app.embeddings.embedder import SentenceTransformerEmbedder
@@ -28,6 +29,17 @@ from app.gnn.trainer import TruncatedBPTTTrainer, DynamicGraphSnapshot
 
 logging.basicConfig(level=logging.INFO, format="%(asctime)s [%(levelname)s] %(message)s")
 logger = logging.getLogger("train_roland")
+
+try:
+    import torch
+    torch.manual_seed(42)
+    TORCH_AVAILABLE = True
+except ImportError:
+    torch = None
+    TORCH_AVAILABLE = False
+
+random.seed(42)
+np.random.seed(42)
 
 
 def sample_negative_edges(
@@ -207,6 +219,21 @@ def train_roland(
             )
             llm = LLMClient(provider=settings.LLM_PROVIDER, openai_api_key=settings.OPENAI_API_KEY)
             extractor = GraphRAGIncrementalExtractor(llm_client=llm, embedder=embedder)
+
+            # Check for extraction cache
+            for cd in [
+                os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "data", "cache", "extraction_cache")),
+                os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "data", "cache", "extraction_cache")),
+            ]:
+                if os.path.exists(cd):
+                    try:
+                        from bench.common import install_extraction_cache
+                        install_extraction_cache(extractor, cd, model_name=settings.OPENAI_MODEL)
+                        logger.info(f"Loaded extraction cache from {cd}")
+                    except Exception as e:
+                        logger.debug(f"Could not load extraction cache: {e}")
+                    break
+
             snapshots = build_snapshots_from_docs(files, chunker, extractor, embedder)
         else:
             logger.warning(f"No documents found in {docs_dir}. Generating synthetic snapshots.")
@@ -238,6 +265,44 @@ def train_roland(
 
     # 4. Save trained weights
     model.save_checkpoint(save_p)
+
+    # 5. Compute mean cosine similarity on final training graph snapshot
+    mean_cos = 1.0
+    if snapshots and len(snapshots) > 0 and TORCH_AVAILABLE and isinstance(model, torch.nn.Module):
+        last_snap = snapshots[-1]
+        x_eval = torch.tensor(last_snap.features, dtype=torch.float32)
+        edge_eval = torch.tensor(last_snap.pos_edges, dtype=torch.long)
+        model.eval()
+        with torch.no_grad():
+            out_eval = model(x_eval, edge_eval, last_snap.node_ids, update_cache=False)
+            x_unit = torch.nn.functional.normalize(x_eval, dim=-1)
+            mean_cos = float((out_eval * x_unit).sum(dim=-1).mean().item())
+        logger.info(f"Mean cos(out, x) on training graph: {mean_cos:.4f}")
+
+    # 6. Save summary to results/train_summary.json
+    import hashlib
+    with open(save_p, "rb") as f:
+        sha256 = hashlib.sha256(f.read()).hexdigest()
+
+    num_windows = (len(snapshots) + window_size - 1) // window_size
+    total_opt_steps = num_windows * epochs
+
+    results_dir = os.path.abspath(os.path.join(os.path.dirname(__file__), "..", "..", "results"))
+    os.makedirs(results_dir, exist_ok=True)
+    summary_path = os.path.join(results_dir, "train_summary.json")
+
+    train_summary = {
+        "snapshots": len(snapshots),
+        "optimizer_steps": total_opt_steps,
+        "loss_per_epoch": loss_history,
+        "mean_cosine_similarity": mean_cos,
+        "checkpoint_sha256": sha256,
+        "checkpoint_path": save_p,
+    }
+    with open(summary_path, "w", encoding="utf-8") as f:
+        json.dump(train_summary, f, indent=2)
+    logger.info(f"Saved training summary to {summary_path}")
+
     logger.info(f"Training completed successfully. Losses: {loss_history}. Saved to: {save_p}")
     return model, loss_history
 

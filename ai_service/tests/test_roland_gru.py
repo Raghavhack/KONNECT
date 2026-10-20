@@ -116,3 +116,69 @@ def test_truncated_bptt_trainer():
     losses = trainer.train_dynamic_stream(snapshots=snapshots, epochs=2)
     assert len(losses) == 2
     assert all(isinstance(l, float) for l in losses)
+
+
+def test_residual_readout_and_training_cosine_acceptance():
+    """
+    Acceptance test for Step 1.3 and 1.4:
+    On random unit vectors, mean cos(out, x) must be at least 0.9 before and after a short training run.
+    """
+    in_dim = 32
+    hidden_dim = 64
+    out_dim = 32
+    model = RolandHierarchicalGRU(
+        in_dim=in_dim,
+        hidden_dim=hidden_dim,
+        out_dim=out_dim,
+        num_layers=2,
+        residual=True,
+    )
+
+    # Random unit vectors
+    rng = np.random.RandomState(42)
+    raw = rng.randn(10, in_dim).astype(np.float32)
+    norm = np.linalg.norm(raw, axis=-1, keepdims=True)
+    raw_unit = raw / norm
+    node_ids = [f"n_{i}" for i in range(10)]
+    edges = np.array([[0, 1, 2, 3], [1, 2, 3, 4]], dtype=np.int64)
+
+    if TORCH_AVAILABLE and isinstance(model, torch.nn.Module):
+        x = torch.tensor(raw_unit, dtype=torch.float32)
+        edge_index = torch.tensor(edges, dtype=torch.long)
+        out_before = model(x, edge_index, node_ids, update_cache=False)
+        # Cosine similarity between unit vectors
+        cos_before = (out_before * x).sum(dim=-1).mean().item()
+        assert cos_before >= 0.9, f"Mean cos before training: {cos_before:.4f} < 0.9"
+
+        # Short training run
+        trainer = TruncatedBPTTTrainer(model=model, lr=0.005, window_size=2)
+        snapshots = [
+            DynamicGraphSnapshot(timestamp=0.0, node_ids=node_ids, features=raw_unit, pos_edges=edges),
+            DynamicGraphSnapshot(timestamp=1.0, node_ids=node_ids, features=raw_unit, pos_edges=edges),
+        ]
+        trainer.train_dynamic_stream(snapshots=snapshots, epochs=3)
+
+        out_after = model(x, edge_index, node_ids, update_cache=False)
+        cos_after = (out_after * x).sum(dim=-1).mean().item()
+        assert cos_after >= 0.9, f"Mean cos after training: {cos_after:.4f} < 0.9"
+    else:
+        out_before = model.forward(raw_unit, edges, node_ids, update_cache=False)
+        cos_before = float(np.mean(np.sum(out_before * raw_unit, axis=-1)))
+        assert cos_before >= 0.9, f"Mean cos before training: {cos_before:.4f} < 0.9"
+
+
+def test_load_checkpoint_behavior(tmp_path):
+    """
+    Test Step 1.5: load_checkpoint logs SHA-256 on success and raises on failure.
+    """
+    model = RolandHierarchicalGRU(in_dim=16, hidden_dim=32, out_dim=16)
+    valid_ckpt = str(tmp_path / "valid.pt")
+    model.save_checkpoint(valid_ckpt)
+    assert model.load_checkpoint(valid_ckpt) is True
+
+    corrupt_ckpt = tmp_path / "corrupt.pt"
+    corrupt_ckpt.write_text("not a valid torch checkpoint")
+    with pytest.raises(RuntimeError):
+        model.load_checkpoint(str(corrupt_ckpt))
+
+    assert model.load_checkpoint(str(tmp_path / "nonexistent.pt")) is False
