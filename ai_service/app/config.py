@@ -83,6 +83,8 @@ class Settings(BaseSettings):
     OPENAI_MODEL: str = Field(default="gpt-4o", env="OPENAI_MODEL")
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
     ANTHROPIC_MODEL: str = Field(default="claude-3-5-sonnet-20241022", env="ANTHROPIC_MODEL")
+    OLLAMA_MODEL: str = Field(default="", env="OLLAMA_MODEL")
+    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
     LLM_TEMPERATURE: float = 0.0
     LLM_MAX_RETRIES: int = 5
     LLM_BASE_DELAY_SECONDS: float = 0.5

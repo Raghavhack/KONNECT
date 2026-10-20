@@ -32,7 +32,7 @@ except ImportError:
     genai = None
     genai_types = None
 
-SUPPORTED_PROVIDERS = ("openai", "anthropic", "gemini")
+SUPPORTED_PROVIDERS = ("openai", "anthropic", "gemini", "ollama")
 
 # Gemini "thinking" models spend output tokens on reasoning; a small cap can truncate the answer.
 GEMINI_MIN_OUTPUT_TOKENS = 8192
@@ -46,6 +46,7 @@ class LLMClient:
         model: Optional[str],
         max_retries: int = 5,
         base_delay: float = 0.5,
+        base_url: Optional[str] = None,
     ):
         self.provider = (provider or "").lower()
         if self.provider not in SUPPORTED_PROVIDERS:
@@ -59,10 +60,10 @@ class LLMClient:
         self.max_retries = max_retries
         self.base_delay = base_delay
 
-        if self.provider == "openai":
+        if self.provider in ("openai", "ollama"):
             if openai is None:
                 raise ImportError("openai package is required: pip install openai")
-            self._openai = openai.OpenAI(api_key=api_key)
+            self._openai = openai.OpenAI(api_key=api_key, base_url = base_url)
         elif self.provider == "anthropic":
             if anthropic is None:
                 raise ImportError("anthropic package is required: pip install anthropic")
@@ -80,6 +81,7 @@ class LLMClient:
             "openai": (s.OPENAI_API_KEY, s.OPENAI_MODEL),
             "anthropic": (s.ANTHROPIC_API_KEY, s.ANTHROPIC_MODEL),
             "gemini": (s.GEMINI_API_KEY, s.GEMINI_MODEL),
+            "ollama": ("ollama", s.OLLAMA_MODEL),  # Ollama ignores the key; any non-empty string works
         }
         if provider not in table:
             raise ValueError(f"LLM_PROVIDER must be one of {SUPPORTED_PROVIDERS}, got {s.LLM_PROVIDER!r}")
@@ -90,10 +92,11 @@ class LLMClient:
             model=model,
             max_retries=s.LLM_MAX_RETRIES,
             base_delay=s.LLM_BASE_DELAY_SECONDS,
+            base_url=s.OLLAMA_BASE_URL if provider == "ollama" else None,
         )
 
     def _call_once(self, prompt, system_prompt, model, temperature, max_tokens) -> str:
-        if self.provider == "openai":
+        if self.provider in ("openai", "ollama"):
             messages = []
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
