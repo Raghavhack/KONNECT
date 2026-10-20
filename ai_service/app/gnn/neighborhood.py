@@ -4,30 +4,56 @@ Core Latency Property: Limits the ROLAND GRU update pass strictly to nodes withi
 k hops of newly changed or added document entities.
 """
 
-import time
-import logging
-from typing import List, Dict, Any, Tuple, Optional
-import numpy as np
+"""
+Bounded k-hop re-embedding (the latency property the evaluation is built on).
 
-try:
-    import torch
-    TORCH_AVAILABLE = True
-except ImportError:
-    torch = None
-    TORCH_AVAILABLE = False
+Design (L = number of GNN layers, k = context radius around the changed entities):
+  * An L-layer GNN gives a node an exact embedding only if its whole L-hop
+    neighbourhood is present in the subgraph we feed it.
+  * A node at hop-distance d from the seeds therefore has an exact embedding iff d + L <= k.
+  * So we run the model on the k-hop subgraph but COMMIT (cache + return) only nodes
+    with d <= k - L. Boundary nodes are used as context and never written back, so
+    truncated neighbourhoods cannot pollute the state cache.
+  * Nodes whose embedding genuinely changes are those within L hops of a seed, so
+    k >= 2L re-embeds every truly affected node. k < L is clamped (seeds only) with a warning.
+"""
+
+import logging
+import time
+from collections import deque
+from typing import Any, Dict, List, Optional, Tuple
+
+import torch
 
 from .roland_gru import RolandHierarchicalGRU
 
 logger = logging.getLogger(__name__)
 
 
-class BoundedNeighborhoodManager:
-    """
-    Coordinates bounded k-hop neighborhood extraction and ROLAND GRU updates.
-    Exposes 'k' as a tunable parameter for latency benchmarking.
-    """
+def hop_distances(seed_names: List[str], node_names: List[str], edges: List[Tuple[str, str]]) -> Dict[str, int]:
+    """BFS hop distance from the nearest seed over an undirected edge list."""
+    adj: Dict[str, List[str]] = {n: [] for n in node_names}
+    for s, t in edges:
+        if s in adj and t in adj:
+            adj[s].append(t)
+            adj[t].append(s)
+    dist: Dict[str, int] = {}
+    q = deque()
+    for s in seed_names:
+        if s in adj and s not in dist:
+            dist[s] = 0
+            q.append(s)
+    while q:
+        u = q.popleft()
+        for v in adj[u]:
+            if v not in dist:
+                dist[v] = dist[u] + 1
+                q.append(v)
+    return dist
 
-    def __init__(self, roland_model: RolandHierarchicalGRU, default_k: int = 2):
+
+class BoundedNeighborhoodManager:
+    def __init__(self, roland_model: RolandHierarchicalGRU, default_k: int = 4):
         self.model = roland_model
         self.default_k = default_k
 
@@ -39,121 +65,57 @@ class BoundedNeighborhoodManager:
         k: Optional[int] = None,
     ) -> Tuple[Dict[str, List[float]], Dict[str, Any]]:
         """
-        Executes ROLAND GRU forward pass strictly on the induced k-hop subgraph.
-
-        Returns:
-            - Dict mapping entity_name -> new_embedding (as list of floats)
-            - Benchmark metrics dict (affected_nodes, processing_time_ms, etc.)
+        Runs the ROLAND update on the induced k-hop subgraph.
+        Returns ({entity_name: new_embedding} for committed nodes only, metrics).
         """
-        k_hops = k if k is not None else self.default_k
-        start_time = time.perf_counter()
+        k_hops = self.default_k if k is None else k
+        t0 = time.perf_counter()
+        L = self.model.num_layers
 
-        if not neighborhood_nodes:
-            return {}, {"processing_time_ms": 0.0, "affected_nodes": 0, "k_hops": k_hops}
+        # Nodes without a text embedding cannot be featurised: skip them, never invent features.
+        nodes = [n for n in neighborhood_nodes if n.get("name") and n.get("embedding") is not None
+                 and len(n["embedding"]) == self.model.in_dim]
+        skipped = len(neighborhood_nodes) - len(nodes)
+        if skipped:
+            logger.warning("Skipped %d neighbourhood nodes with missing/misshapen text embeddings", skipped)
+        if not nodes:
+            return {}, {"processing_time_ms": 0.0, "affected_nodes": 0, "committed_nodes": 0, "k_hops": k_hops}
 
-        node_names = [n["name"] for n in neighborhood_nodes if "name" in n]
-        name_to_idx = {name: i for i, name in enumerate(node_names)}
-        N = len(node_names)
+        names = [n["name"] for n in nodes]
+        idx = {nm: i for i, nm in enumerate(names)}
+        und_edges = [(e["src"], e["tgt"]) for e in neighborhood_edges if e.get("src") in idx and e.get("tgt") in idx]
 
-        # Assemble node feature matrix
-        in_dim = self.model.in_dim
-        features = np.zeros((N, in_dim), dtype=np.float32)
+        src, dst = [], []
+        for s, t in und_edges:
+            src += [idx[s], idx[t]]
+            dst += [idx[t], idx[s]]
+        edge_index = torch.tensor([src, dst], dtype=torch.long) if src else torch.empty((2, 0), dtype=torch.long)
+        x = torch.tensor([n["embedding"] for n in nodes], dtype=torch.float32)
 
-        for i, node in enumerate(neighborhood_nodes):
-            emb = node.get("embedding")
-            if emb and len(emb) == in_dim:
-                features[i] = np.array(emb, dtype=np.float32)
-            else:
-                # Random or importance scaled initialization
-                imp = float(node.get("importance_score", 1.0))
-                features[i, : min(in_dim, 10)] = imp
+        # Which nodes have an exact L-layer embedding?
+        commit_radius = k_hops - L
+        if commit_radius < 0:
+            logger.warning("k=%d < num_layers=%d: only seed nodes are committed; use k >= %d for exact updates",
+                           k_hops, L, 2 * L)
+            commit_radius = 0
+        dist = hop_distances(seed_entity_names, names, und_edges)
+        commit_mask = torch.tensor([dist.get(nm, 10**9) <= commit_radius for nm in names], dtype=torch.bool)
 
-        # Assemble local edge_index
-        src_indices = []
-        tgt_indices = []
-        for e in neighborhood_edges:
-            s_name = e.get("src")
-            t_name = e.get("tgt")
-            if s_name in name_to_idx and t_name in name_to_idx:
-                src_indices.append(name_to_idx[s_name])
-                tgt_indices.append(name_to_idx[t_name])
-                # Undirected message passing
-                src_indices.append(name_to_idx[t_name])
-                tgt_indices.append(name_to_idx[s_name])
+        self.model.eval()
+        with torch.no_grad():
+            out = self.model(x=x, edge_index=edge_index, node_ids=names, update_cache=True, commit_mask=commit_mask)
 
-        edge_index_np = np.array([src_indices, tgt_indices], dtype=np.int64)
-
-        # Execute ROLAND GRU
-        if TORCH_AVAILABLE and isinstance(self.model, torch.nn.Module):
-            device = next(self.model.parameters()).device
-            x_tensor = torch.tensor(features, dtype=torch.float32, device=device)
-            edge_tensor = torch.tensor(edge_index_np, dtype=torch.long, device=device)
-
-            with torch.no_grad():
-                out_embeddings = self.model(
-                    x=x_tensor,
-                    edge_index=edge_tensor,
-                    node_ids=node_names,
-                    update_cache=True,
-                )
-            out_np = out_embeddings.cpu().numpy()
-        else:
-            out_np = self.model.forward(
-                x=features,
-                edge_index=edge_index_np,
-                node_ids=node_names,
-                update_cache=True,
-            )
-
-        elapsed_ms = (time.perf_counter() - start_time) * 1000.0
-
-        updated_embeddings: Dict[str, List[float]] = {}
-        for idx, name in enumerate(node_names):
-            updated_embeddings[name] = out_np[idx].tolist()
-
+        updated = {nm: out[i].tolist() for i, nm in enumerate(names) if bool(commit_mask[i])}
+        elapsed_ms = (time.perf_counter() - t0) * 1000.0
         metrics = {
             "processing_time_ms": round(elapsed_ms, 3),
-            "affected_nodes": N,
-            "edges_evaluated": len(src_indices),
+            "affected_nodes": len(names),            # nodes the model ran on (context size)
+            "committed_nodes": len(updated),         # nodes actually re-embedded and stored
+            "edges_evaluated": edge_index.size(1),
             "k_hops": k_hops,
+            "commit_radius": commit_radius,
             "seed_nodes_count": len(seed_entity_names),
         }
-
-        logger.info(
-            f"Bounded k-hop ROLAND update completed: {N} nodes updated in {elapsed_ms:.2f}ms (k={k_hops})"
-        )
-        return updated_embeddings, metrics
-
-    def benchmark_comparison(
-        self,
-        num_total_nodes: int = 10000,
-        num_total_edges: int = 50000,
-        k: int = 2,
-    ) -> Dict[str, Any]:
-        """
-        Benchmarks k-hop bounded re-embedding against a full graph recomputation.
-        Demonstrates the latency properties described in Section 5 & Section 7.
-        """
-        # Simulate local neighborhood (~50 nodes)
-        local_nodes = [{"name": f"node_{i}", "embedding": np.random.randn(self.model.in_dim).tolist()} for i in range(50)]
-        local_edges = [{"src": f"node_{i}", "tgt": f"node_{(i+1)%50}"} for i in range(50)]
-
-        _, bounded_metrics = self.run_bounded_update(
-            seed_entity_names=["node_0"],
-            neighborhood_nodes=local_nodes,
-            neighborhood_edges=local_edges,
-            k=k,
-        )
-
-        # Full graph equivalent approximation: O(|V| + |E|) relative scale
-        speedup = max(1.0, (num_total_nodes + num_total_edges) / (len(local_nodes) + len(local_edges)))
-        full_graph_time_ms = bounded_metrics["processing_time_ms"] * speedup
-
-        return {
-            "k_hops": k,
-            "bounded_nodes_evaluated": len(local_nodes),
-            "full_graph_nodes": num_total_nodes,
-            "bounded_latency_ms": bounded_metrics["processing_time_ms"],
-            "full_graph_latency_ms": round(full_graph_time_ms, 2),
-            "speedup_factor": round(speedup, 1),
-        }
+        logger.info("Bounded update: ran on %d nodes, committed %d, %.2f ms (k=%d)",
+                    len(names), len(updated), elapsed_ms, k_hops)
+        return updated, metrics

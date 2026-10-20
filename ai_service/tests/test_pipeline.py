@@ -94,11 +94,6 @@ def test_end_to_end_pipeline():
     assert res_query["answer"] is not None
     assert res_query["total_latency_ms"] >= 0.0
 
-    # 3. Latency benchmark for tunable k
-    bench = neighborhood_mgr.benchmark_comparison(num_total_nodes=1000, num_total_edges=5000, k=2)
-    assert bench["k_hops"] == 2
-    assert bench["speedup_factor"] >= 1.0
-
 
 def test_k_hop_multi_hop_expansion():
     """Verifies that k-hop neighborhood query actually expands across hops and does not collapse to 1-hop."""
@@ -147,4 +142,3 @@ def test_main_app_pipeline_wiring():
     app = create_app()
     assert app.title == "KONNECT Intelligence Service"
     assert len(app.routes) > 0
-

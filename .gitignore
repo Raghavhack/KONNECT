@@ -27,3 +27,6 @@ build/
 # OS
 .DS_Store
 Thumbs.db
+# trained model weights are artifacts, not source
+models/*.pt
+.extraction_cache/

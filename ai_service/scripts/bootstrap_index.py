@@ -24,10 +24,9 @@ from app.graph.community import CommunityDetector
 
 from app.gnn.roland_gru import RolandHierarchicalGRU
 from app.gnn.neighborhood import BoundedNeighborhoodManager
-from scripts.train_roland import train_roland
 
 
-def run_bootstrap(docs_dir: str, train_gnn: bool = False):
+def run_bootstrap(docs_dir: str):
     logger.info(f"Starting bootstrap indexing from directory: {docs_dir}")
     doc_path = Path(docs_dir)
     if not doc_path.exists():
@@ -86,33 +85,19 @@ def run_bootstrap(docs_dir: str, train_gnn: bool = False):
         f"{len(all_entity_names)} entities, {total_relationships} relationships."
     )
 
-    # Initialize ROLAND GNN
-    roland = RolandHierarchicalGRU(
-        in_dim=settings.NEO4J_EMBEDDING_DIM,
-        hidden_dim=settings.GNN_HIDDEN_DIM,
-        out_dim=settings.NEO4J_EMBEDDING_DIM,
-        num_layers=settings.GNN_NUM_LAYERS,
-        gnn_type=settings.GNN_TYPE,
-        dropout=settings.GNN_DROPOUT,
-        residual=True,
-    )
-
-    # Train GNN if requested, or load existing checkpoint
+    # Load the trained ROLAND model (train separately: python -m scripts.train_roland --stream ...)
     checkpoint_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", settings.ROLAND_MODEL_PATH)
     )
-    if train_gnn:
-        logger.info("Executing GNN training over bootstrap documents...")
-        train_roland(
-            docs_dir=docs_dir,
-            epochs=5,
-            save_path=checkpoint_path,
-            in_dim=settings.NEO4J_EMBEDDING_DIM,
-            hidden_dim=settings.GNN_HIDDEN_DIM,
-            out_dim=settings.NEO4J_EMBEDDING_DIM,
-        )
-    elif os.path.exists(checkpoint_path):
-        roland.load_checkpoint(checkpoint_path)
+    if os.path.exists(checkpoint_path):
+        roland = RolandHierarchicalGRU.from_checkpoint(checkpoint_path)
+    else:
+        logger.warning("No ROLAND checkpoint at %s: bootstrapping with UNTRAINED weights.", checkpoint_path)
+        roland = RolandHierarchicalGRU(
+            in_dim=settings.NEO4J_EMBEDDING_DIM, hidden_dim=settings.GNN_HIDDEN_DIM,
+            out_dim=settings.NEO4J_EMBEDDING_DIM, num_layers=settings.GNN_NUM_LAYERS,
+            gnn_type=settings.GNN_TYPE, dropout=settings.GNN_DROPOUT, residual=True,
+        ).eval()
 
     # Execute GNN initial embedding pass over entire bootstrap graph
     if all_entity_names:
@@ -148,6 +133,5 @@ def run_bootstrap(docs_dir: str, train_gnn: bool = False):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser(description="Bootstrap index documents into Neo4j and run GNN")
     parser.add_argument("--docs-dir", type=str, default="./sample_docs", help="Path to documents folder")
-    parser.add_argument("--train-gnn", action="store_true", help="Train ROLAND GRU on bootstrap corpus")
     args = parser.parse_args()
-    run_bootstrap(args.docs_dir, train_gnn=args.train_gnn)
+    run_bootstrap(args.docs_dir)

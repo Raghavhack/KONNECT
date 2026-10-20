@@ -111,23 +111,10 @@ async def invalidate_cache(
 
 
 @router.post("/benchmark", response_model=BenchmarkResponseModel)
-async def benchmark_latency(
-    payload: BenchmarkRequestModel,
-    manager=Depends(get_neighborhood_manager),
-):
-    """
-    Benchmarks k-hop bounded re-embedding against full graph recomputation.
-    Demonstrates the latency properties required for Section 7 evaluation.
-    """
-    try:
-        res = manager.benchmark_comparison(
-            num_total_nodes=payload.num_synthetic_nodes,
-            num_total_edges=payload.num_synthetic_edges,
-            k=payload.k_hops,
-        )
-        return BenchmarkResponseModel(**res)
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def benchmark_latency(payload: BenchmarkRequestModel):
+    """Not served from the API: the previous version returned an extrapolated number, not a
+    measurement. Real full-rebuild vs incremental measurements live in bench/ (run offline)."""
+    raise HTTPException(status_code=501, detail="Use the offline benchmark harness in bench/")
 
 
 @router.get("/health", response_model=HealthResponse)

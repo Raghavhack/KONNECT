@@ -6,6 +6,7 @@ python-dotenv>=1.0.0
 numpy>=1.26.0
 networkx>=3.0
 torch>=2.2.0
+torch_geometric>=2.5.0
 grpcio>=1.60.0
 grpcio-tools>=1.60.0
 protobuf>=4.25.0

@@ -107,28 +107,26 @@ def initialize_pipeline():
     )
 
     # 6. ROLAND Hierarchical Dynamic Graph GRU Model
-    # Dimensions match MiniLM (384) with residual readout x + proj(h) staying in text space
-    roland_model = RolandHierarchicalGRU(
-        in_dim=settings.NEO4J_EMBEDDING_DIM,
-        hidden_dim=settings.GNN_HIDDEN_DIM,
-        out_dim=settings.NEO4J_EMBEDDING_DIM,
-        num_layers=settings.GNN_NUM_LAYERS,
-        gnn_type=settings.GNN_TYPE,
-        dropout=settings.GNN_DROPOUT,
-        residual=True,
-    )
-
-    # Load trained model checkpoint if available
+    # A checkpoint carries its own architecture; an invalid/old-format checkpoint is a hard error.
     checkpoint_path = os.path.abspath(
         os.path.join(os.path.dirname(__file__), "..", settings.ROLAND_MODEL_PATH)
     )
     if os.path.exists(checkpoint_path):
-        roland_model.load_checkpoint(checkpoint_path)
+        roland_model = RolandHierarchicalGRU.from_checkpoint(checkpoint_path)
     else:
-        logger.info(
-            f"No trained checkpoint found at {checkpoint_path}. "
-            "Model will operate with initial weights (run train_roland.py to train on edit stream)."
+        logger.warning(
+            "No trained ROLAND checkpoint at %s: running with UNTRAINED weights. "
+            "Train with `python -m scripts.train_roland --stream ...`.", checkpoint_path
         )
+        roland_model = RolandHierarchicalGRU(
+            in_dim=settings.NEO4J_EMBEDDING_DIM,
+            hidden_dim=settings.GNN_HIDDEN_DIM,
+            out_dim=settings.NEO4J_EMBEDDING_DIM,
+            num_layers=settings.GNN_NUM_LAYERS,
+            gnn_type=settings.GNN_TYPE,
+            dropout=settings.GNN_DROPOUT,
+            residual=True,
+        ).eval()
 
     # 7. Bounded Neighborhood Re-embedding Manager
     neighborhood_manager = BoundedNeighborhoodManager(
