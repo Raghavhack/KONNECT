@@ -30,3 +30,4 @@ Thumbs.db
 # trained model weights are artifacts, not source
 models/*.pt
 .extraction_cache/
+ai_service/KONNECT_benchmarking_dataset
