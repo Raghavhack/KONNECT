@@ -9,6 +9,8 @@ import argparse
 import logging
 from pathlib import Path
 
+from app.main import logger
+
 # Add project root to sys.path
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -40,7 +42,7 @@ def run_bootstrap(docs_dir: str):
         model_name=settings.EMBEDDING_MODEL_NAME,
         embedding_dim=settings.NEO4J_EMBEDDING_DIM,
     )
-    llm = LLMClient(provider=settings.LLM_PROVIDER, openai_api_key=settings.OPENAI_API_KEY)
+    llm = LLMClient.from_settings(settings)
     extractor = GraphRAGIncrementalExtractor(llm_client=llm, embedder=embedder)
 
     neo4j_client = Neo4jClient(

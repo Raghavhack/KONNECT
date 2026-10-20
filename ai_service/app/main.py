@@ -76,14 +76,8 @@ def initialize_pipeline():
     )
 
     # 3. LLM Client & GraphRAG Extractor
-    llm_client = LLMClient(
-        provider=settings.LLM_PROVIDER,
-        openai_api_key=settings.OPENAI_API_KEY,
-        anthropic_api_key=settings.ANTHROPIC_API_KEY,
-        default_model=settings.OPENAI_MODEL if settings.LLM_PROVIDER == "openai" else settings.ANTHROPIC_MODEL,
-        max_retries=settings.LLM_MAX_RETRIES,
-        base_delay=settings.LLM_BASE_DELAY_SECONDS,
-    )
+    llm_client = LLMClient.from_settings(settings)
+
     extractor = GraphRAGIncrementalExtractor(
         llm_client=llm_client,
         embedder=embedder,

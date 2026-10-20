@@ -25,6 +25,7 @@ from pathlib import Path
 from typing import Dict, List, Set, Tuple
 
 import numpy as np
+from sympy import false, true
 
 sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), "..")))
 
@@ -79,10 +80,19 @@ def build_snapshots(edits: List[dict], cache_dir: Path, chunker, extractor) -> L
 
 
 def main():
+    import spacy
+
+    try:
+        nlp = spacy.load("en_core_web_sm")
+    except OSError:
+        print("Model not found. Downloading...")
+        spacy.cli.download("en_core_web_sm")
+        nlp = spacy.load("en_core_web_sm")
+
     ap = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawDescriptionHelpFormatter)
-    ap.add_argument("--stream", required=True, help="JSONL edit stream (chronological)")
+    ap.add_argument("--stream", required=true, help="JSONL edit stream (chronological)")
     ap.add_argument("--cache-dir", default=".extraction_cache")
-    ap.add_argument("--epochs", type=int, default=30)
+    ap.add_argument("--epochs", type=int, default=100)
     ap.add_argument("--patience", type=int, default=5)
     ap.add_argument("--lr", type=float, default=settings.ROLAND_LEARNING_RATE)
     ap.add_argument("--window-size", type=int, default=settings.ROLAND_TRUNCATED_BPTT_STEPS)
@@ -94,10 +104,11 @@ def main():
     from app.llm.client import LLMClient
     from app.preprocessing.chunker import SemanticChunker
     from app.preprocessing.text_processor import TextProcessor
+    import torch
 
     edits = [json.loads(l) for l in Path(args.stream).read_text().splitlines() if l.strip()]
     embedder = SentenceTransformerEmbedder(model_name=settings.EMBEDDING_MODEL_NAME, embedding_dim=settings.NEO4J_EMBEDDING_DIM)
-    llm = LLMClient(provider=settings.LLM_PROVIDER, openai_api_key=settings.OPENAI_API_KEY)
+    llm = LLMClient.from_settings(settings)
     extractor = GraphRAGIncrementalExtractor(llm_client=llm, embedder=embedder)
     chunker = SemanticChunker(processor=TextProcessor(model_name=settings.SPACY_MODEL))
 
@@ -105,10 +116,18 @@ def main():
     if len(snapshots) < 10:
         raise SystemExit(f"Only {len(snapshots)} snapshots: too few to train/validate/test. Use a longer edit stream.")
 
+    if torch.cuda.is_available():
+        device = "cuda"
+    else :
+        device = "cpu"
+
     model = RolandHierarchicalGRU(
         in_dim=settings.NEO4J_EMBEDDING_DIM, hidden_dim=settings.GNN_HIDDEN_DIM, out_dim=settings.NEO4J_EMBEDDING_DIM,
         num_layers=settings.GNN_NUM_LAYERS, gnn_type=settings.GNN_TYPE, dropout=settings.GNN_DROPOUT, residual=True,
     )
+
+    model.to(device)
+
     trainer = TruncatedBPTTTrainer(model, lr=args.lr, window_size=args.window_size)
     history = trainer.train(snapshots, epochs=args.epochs, patience=args.patience)
 

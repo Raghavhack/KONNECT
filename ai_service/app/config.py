@@ -6,11 +6,12 @@ Manages service parameters, Neo4j, Redis, LLM, and model settings.
 from typing import Optional, List
 from pydantic import Field
 from pydantic_settings import BaseSettings, SettingsConfigDict
+from pathlib import Path
 
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=".env",
+        env_file=str(Path(__file__).resolve().parents[2] / ".env"),
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -75,7 +76,9 @@ class Settings(BaseSettings):
     PCST_USE_GNN: bool = Field(default=True, env="PCST_USE_GNN")  # Set False for Arm D ablation
 
     # LLM Settings (OpenAI / Anthropic)
-    LLM_PROVIDER: str = Field(default="openai", env="LLM_PROVIDER")  # "openai" or "anthropic"
+    LLM_PROVIDER: str = Field(default="openai", env="LLM_PROVIDER")  # "openai" or "anthropic" or "gemini"
+    GEMINI_API_KEY: Optional[str] = Field(default=None, env="GEMINI_API_KEY")
+    GEMINI_MODEL: str = Field(default="", env="GEMINI_MODEL")
     OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     OPENAI_MODEL: str = Field(default="gpt-4o", env="OPENAI_MODEL")
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
@@ -83,6 +86,9 @@ class Settings(BaseSettings):
     LLM_TEMPERATURE: float = 0.0
     LLM_MAX_RETRIES: int = 5
     LLM_BASE_DELAY_SECONDS: float = 0.5
+
+    # Hugging Face
+    HF_TOKEN: str = Field(default = None, env = "HF_TOKEN")
 
 
 # Singleton settings instance

@@ -111,11 +111,10 @@ class GraphRAGIncrementalExtractor:
                 )
 
         except Exception as e:
-            logger.warning(
-                f"LLM extraction encountered error: {e}. Falling back to candidate entity spotting."
-            )
-            # Heuristic extraction fallback using detected entities
-            entities, relationships = self._fallback_extraction(chunk)
+
+            logger.error(f"LLM extraction failed for chunk {chunk.chunk_id}: {e}")
+
+            raise e
 
         return entities, relationships
 
