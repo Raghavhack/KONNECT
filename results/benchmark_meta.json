@@ -1,0 +1,37 @@
+{
+  "timestamp": "2026-10-20 18:17:28",
+  "git_commit": "fc14ecece013b616e2b93888acc8575688f96eed",
+  "seed": 42,
+  "args": {
+    "stage": "all",
+    "questions": 35,
+    "sizes": [
+      50,
+      150,
+      300
+    ],
+    "edits": 20,
+    "repeats": 2,
+    "k": 4,
+    "topk": 10,
+    "budget_words": 1100
+  },
+  "llm_provider": "ollama",
+  "llm_model": "qwen2.5:7b",
+  "embedding_model": "all-MiniLM-L6-v2",
+  "gnn_type": "GAT",
+  "gnn_layers": 2,
+  "checkpoint": "/home/manasranjanjena/PycharmProjects/KONNECT/ai_service/models/roland_model.pt",
+  "checkpoint_sha256": "f48b029048a25fdf9eca41667123b837b4e5e00d511d3d91c3e4066a6e7354f9",
+  "corpus_docs": 298,
+  "n_questions": 35,
+  "graph_backend": "in-memory",
+  "leiden_excluded": true,
+  "train_eval_doc_overlap": 0,
+  "extraction_cache": {
+    "hits": 2087,
+    "new_llm_calls": 83
+  },
+  "edits_used": 20,
+  "edits_changed_graph_share": 0.85
+}

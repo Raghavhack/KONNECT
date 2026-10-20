@@ -49,13 +49,25 @@ class GraphRAGIncrementalExtractor:
         relationships: List[ExtractedRelationship] = []
 
         try:
-            raw_response = self.llm.generate(
-                prompt=prompt,
-                system_prompt=GRAPHRAG_EXTRACTION_SYSTEM_PROMPT,
-                temperature=0.0,
-            )
+            parsed = None
+            last_parse_err = None
+            # Malformed JSON from a small model is a sampling accident, not a systematic failure.
+            # Re-ask with a slightly higher temperature (a genuinely different sample); raise if all fail.
+            for temp in (0.0, 0.3, 0.6):
+                raw_response = self.llm.generate(
+                    prompt=prompt,
+                    system_prompt=GRAPHRAG_EXTRACTION_SYSTEM_PROMPT,
+                    temperature=temp,
+                )
+                try:
+                    parsed = self._clean_and_parse_json(raw_response)
+                    break
+                except json.JSONDecodeError as pe:
+                    last_parse_err = pe
+                    logger.warning(f"Malformed JSON for chunk {chunk.chunk_id} at temperature {temp}: {pe}")
+            if parsed is None:
+                raise last_parse_err
 
-            parsed = self._clean_and_parse_json(raw_response)
             raw_entities = parsed.get("entities", [])
             raw_relations = parsed.get("relationships", [])
 
