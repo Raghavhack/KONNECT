@@ -71,7 +71,6 @@ def initialize_pipeline():
     # 2. Text Embedder (MiniLM, 384 dimensions)
     embedder = SentenceTransformerEmbedder(
         model_name=settings.EMBEDDING_MODEL_NAME,
-        device=settings.EMBEDDING_DEVICE,
         embedding_dim=settings.NEO4J_EMBEDDING_DIM,
     )
 

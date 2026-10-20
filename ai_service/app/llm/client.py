@@ -101,8 +101,9 @@ class LLMClient:
             if system_prompt:
                 messages.append({"role": "system", "content": system_prompt})
             messages.append({"role": "user", "content": prompt})
+            out_tokens = max(max_tokens, 4096) if self.provider == "ollama" else max_tokens
             resp = self._openai.chat.completions.create(
-                model=model, messages=messages, temperature=temperature, max_tokens=max_tokens
+                model=model, messages=messages, temperature=temperature, max_tokens=out_tokens
             )
             return resp.choices[0].message.content or ""
 

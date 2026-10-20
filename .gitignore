@@ -31,3 +31,4 @@ Thumbs.db
 models/*.pt
 .extraction_cache/
 ai_service/KONNECT_benchmarking_dataset
+ai_service/.bench_cache
