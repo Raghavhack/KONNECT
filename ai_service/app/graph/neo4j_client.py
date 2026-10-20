@@ -5,7 +5,7 @@ Includes an in-memory graph fallback for standalone testing.
 """
 
 import logging
-from typing import Dict, Any, List, Optional
+from typing import Dict, Any, List, Optional, Tuple
 import numpy as np
 
 logger = logging.getLogger(__name__)
@@ -160,7 +160,6 @@ class InMemoryGraphFallback:
         return results[:top_k]
 
 
-from typing import Tuple
 
 
 class Neo4jClient:

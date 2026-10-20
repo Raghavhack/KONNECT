@@ -234,20 +234,10 @@ class IntelligenceServicer(pb2_grpc.IntelligenceServiceServicer):
     def BenchmarkLatency(
         self, request: pb2.BenchmarkRequest, context
     ) -> pb2.BenchmarkResponse:
-        bench = self.neighborhood_manager.benchmark_comparison(
-            num_total_nodes=request.num_synthetic_nodes or 5000,
-            num_total_edges=request.num_synthetic_edges or 25000,
-            k=request.k_hops or 2,
-        )
-        return pb2.BenchmarkResponse(
-            k_hops=bench["k_hops"],
-            affected_nodes=bench["bounded_nodes_evaluated"],
-            preprocessing_time_ms=2.5,
-            roland_gru_time_ms=bench["bounded_latency_ms"],
-            full_graph_equivalent_time_ms=bench["full_graph_latency_ms"],
-            speedup_factor=bench["speedup_factor"],
-            total_latency_ms=bench["bounded_latency_ms"] + 2.5,
-        )
+        # The old implementation returned extrapolated/hard-coded numbers. Real measurements
+        # come from the offline harness in bench/.
+        import grpc
+        context.abort(grpc.StatusCode.UNIMPLEMENTED, "Use the offline benchmark harness in bench/")
 
     def CheckHealth(self, request: pb2.HealthCheckRequest, context) -> pb2.HealthCheckResponse:
         subsystems = {

@@ -62,7 +62,7 @@ class Settings(BaseSettings):
     GNN_NUM_LAYERS: int = 2
     GNN_TYPE: str = "GAT"  # "GAT" or "GraphSAGE"
     GNN_DROPOUT: float = 0.1
-    DEFAULT_K_HOPS: int = Field(default=2, env="DEFAULT_K_HOPS")  # Tunable parameter for Section 7 evaluation
+    DEFAULT_K_HOPS: int = Field(default=4, env="DEFAULT_K_HOPS")  # context radius; exact updates need k >= num_layers (commit radius = k - L). Tunable for evaluation
     ROLAND_LEARNING_RATE: float = 0.005
     ROLAND_TRUNCATED_BPTT_STEPS: int = 3
     ROLAND_MODEL_PATH: str = Field(default="models/roland_model.pt", env="ROLAND_MODEL_PATH")
