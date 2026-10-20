@@ -25,12 +25,11 @@ from app.pipeline.incremental_engine import IncrementalEngine
 from app.pipeline.query_engine import QueryEngine
 
 
-def test_end_to_end_pipeline():
+def test_end_to_end_pipeline(llm):
     dim = 64
     processor = TextProcessor()
     chunker = SemanticChunker(processor=processor, chunk_size=40, chunk_overlap=10)
     embedder = SentenceTransformerEmbedder(embedding_dim=dim)
-    llm = LLMClient(provider="openai")
     extractor = GraphRAGIncrementalExtractor(llm_client=llm, embedder=embedder)
 
     neo4j_client = Neo4jClient(embedding_dim=dim)

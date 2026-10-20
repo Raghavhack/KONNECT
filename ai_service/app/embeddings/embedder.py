@@ -6,8 +6,11 @@ batching, and cosine similarity calculation.
 
 import logging
 import hashlib
+import os
 from typing import List, Union, Optional
 import numpy as np
+import torch
+from ..config import settings
 
 logger = logging.getLogger(__name__)
 
@@ -18,6 +21,10 @@ except ImportError:
     SentenceTransformer = None
     SENTENCE_TRANSFORMERS_AVAILABLE = False
 
+if settings.HF_TOKEN :
+    os.environ["HF_TOKEN"] = settings.HF_TOKEN
+else:
+    pass
 
 def cosine_similarity(a: np.ndarray, b: np.ndarray) -> float:
     """Computes cosine similarity between two 1D or 2D numpy arrays."""
@@ -36,12 +43,16 @@ class SentenceTransformerEmbedder:
     def __init__(
         self,
         model_name: str = "all-MiniLM-L6-v2",
-        device: str = "cpu",
         embedding_dim: int = 384,
         cache_size: int = 5000,
     ):
         self.model_name = model_name
-        self.device = device
+
+        if torch.cuda.is_available() :
+            self.device = "cuda"
+        else :
+            self.device = "cpu"
+
         self.embedding_dim = embedding_dim
         self.model = None
         self._cache = {}
@@ -67,9 +78,8 @@ class SentenceTransformerEmbedder:
         except Exception as e:
             logger.warning(
                 f"Could not load SentenceTransformer '{self.model_name}' ({e}). "
-                "Falling back to deterministic pseudo-embeddings."
             )
-            self.model = None
+            raise e
 
     def _fallback_embed(self, text: str) -> np.ndarray:
         """

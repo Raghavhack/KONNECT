@@ -34,8 +34,7 @@ def test_extraction_models():
     assert rel.relation_type == "USES"
 
 
-def test_graphrag_extractor_fallback_and_delta():
-    llm = LLMClient(provider="openai")
+def test_graphrag_extractor_and_delta(llm):
     extractor = GraphRAGIncrementalExtractor(llm_client=llm)
 
     chunk = Chunk(
@@ -52,7 +51,6 @@ def test_graphrag_extractor_fallback_and_delta():
     entities, relationships = extractor.extract_from_chunk(chunk)
     assert len(entities) >= 2
 
-    # Compute delta against empty graph
     delta = extractor.compute_graph_delta(
         document_id="doc_1",
         existing_entity_names=["FastAPI"],
@@ -62,5 +60,25 @@ def test_graphrag_extractor_fallback_and_delta():
 
     assert isinstance(delta, GraphDelta)
     assert len(delta.affected_entity_names) > 0
-    # FastAPI was existing, so it should be categorized as updated
-    assert any(e.name == "FastAPI" for e in delta.updated_entities)
+    assert any(e.name.lower() == "fastapi" for e in delta.updated_entities)
+
+
+def test_llm_client_requires_provider_key_and_model():
+    with pytest.raises(ValueError):
+        LLMClient(provider="gemini", api_key=None, model="some-model")
+    with pytest.raises(ValueError):
+        LLMClient(provider="gemini", api_key="k", model="")
+    with pytest.raises(ValueError):
+        LLMClient(provider="nonsense", api_key="k", model="m")
+
+
+def test_extractor_raises_when_llm_call_fails():
+    """Real client with an invalid key: the real API rejects it and the error must propagate."""
+    from app.config import settings
+    bad = LLMClient(provider="gemini", api_key="invalid-key", model=settings.GEMINI_MODEL,
+                    max_retries=1, base_delay=0.0)
+    extractor = GraphRAGIncrementalExtractor(llm_client=bad)
+    chunk = Chunk(chunk_id="c", document_id="d", chunk_index=0, text="FastAPI uses PyTorch.",
+                  start_char=0, end_char=20, token_count=4, detected_entities=["FastAPI"])
+    with pytest.raises(RuntimeError):
+        extractor.extract_from_chunk(chunk)
