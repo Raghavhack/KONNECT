@@ -2,6 +2,7 @@ const { Queue, Worker } = require("bullmq");
 const IORedis = require("ioredis");
 const config = require("../config/onedrive");
 const onedriveService = require("./onedriveService");
+const grpcClient = require("./grpcClient");
 
 class QueueService {
   constructor() {
@@ -173,13 +174,35 @@ class QueueService {
         }
       }
 
-      // Next step in KONNECT architecture:
       // gRPC call to Python service to parse AST, run spaCy NER, Cypher MERGE in Neo4j,
-      // and ROLAND GRU 2-hop re-embedding.
+      // and ROLAND GRU 2-hop re-embedding with cache invalidation
+      let intelligenceResult = null;
+      if (content) {
+        try {
+          intelligenceResult = await grpcClient.updateKnowledgeGraph({
+            documentId: jobData.documentId,
+            title: jobData.fileName || jobData.documentId,
+            content: typeof content === "string" ? content : content.toString("utf8"),
+            kHops: jobData.kHops || 2,
+            triggerLeiden: true,
+            invalidateCache: true,
+          });
+          console.log(
+            `[Sync Worker] Python Intelligence Service updated graph for [${jobData.documentId}]:`,
+            intelligenceResult?.nodes_updated ?? "OK"
+          );
+        } catch (grpcErr) {
+          console.warn(
+            `[Sync Worker] Python Intelligence Service call skipped or failed: ${grpcErr.message}`
+          );
+        }
+      }
+
       return {
         success: true,
         documentId: jobData.documentId,
         contentLength: content ? content.length : 0,
+        intelligenceResult,
         processedAt: new Date().toISOString(),
       };
     } catch (err) {

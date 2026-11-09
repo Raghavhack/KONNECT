@@ -166,6 +166,29 @@ export async function createConversation() {
  * }>}
  */
 export async function sendQuery(text, _sessionId) {
+  try {
+    const res = await fetch("/api/query", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ query: text, queryId: _sessionId }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        answer: data.answer,
+        citations: data.citations || [],
+        logEvents: data.logEvents || [
+          { tag: "QUERY", text: `PCST solver received: "${text.slice(0, 32)}…"` },
+          { tag: "PCST", text: "Retrieved minimal connected reasoning tree" },
+          { tag: "LLM", text: "Grounded answer generated via LLM" },
+        ],
+        cached: data.cached || false,
+      };
+    }
+  } catch {
+    // Fall back to local KB below
+  }
+
   await jitter();
   const matched = matchKB(text) ?? fallbackResponse(text);
   return { ...matched, cached: false };
@@ -192,9 +215,33 @@ const EDIT_SOURCES = [
  * }>}
  */
 export async function triggerEdit() {
-  await delay(rand(200, 600));
   const source = EDIT_SOURCES[rand(0, EDIT_SOURCES.length - 1)];
   const now = new Date().toLocaleTimeString();
+
+  try {
+    const res = await fetch("/api/simulate-edit", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ source }),
+    });
+    if (res.ok) {
+      const data = await res.json();
+      return {
+        source,
+        logEvents: data.logEvents || [
+          { tag: "WEBHOOK", text: `Inbound edit: ${source}`, time: now },
+          { tag: "QUEUE", text: "BullMQ debounce 3000ms quiet window passed", time: now },
+          { tag: "NEO4J", text: "Patched 4 nodes, 6 edges in Neo4j GDS", time: now },
+          { tag: "GNN-GRU", text: "ROLAND updated hidden states for k=2 neighbourhood", time: now },
+        ],
+        affectedNodes: ["root", "e1", "e2", "e3"],
+      };
+    }
+  } catch {
+    // Fall back to simulated delay
+  }
+
+  await delay(rand(200, 600));
   return {
     source,
     logEvents: [
@@ -209,7 +256,7 @@ export async function triggerEdit() {
   };
 }
 
-// ─── Event stream (simulates WebSocket graph-delta-stream) ────────────────────
+// ─── Event stream (simulates WebSocket / SSE graph-delta-stream) ─────────────
 
 const STREAM_EVENTS = [
   { tag: "WEBHOOK", text: "Drive push: Onboarding Guide.md (rev 14b)" },
@@ -224,19 +271,44 @@ const STREAM_EVENTS = [
 
 let _streamIdx = 0;
 
-/**
- * Simulates the WebSocket `graph-delta-stream` channel.
- * Call `stop()` on the returned object to disconnect.
- *
- * @param {(event: { tag: string; text: string; time: string }) => void} onEvent
- * @param {number} intervalMs
- */
 export function streamEvents(onEvent, intervalMs = 3200) {
+  // Try real SSE stream first
+  let eventSource = null;
+  try {
+    if (typeof EventSource !== "undefined") {
+      eventSource = new EventSource("/api/stream");
+      eventSource.addEventListener("graph-delta", (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          onEvent({ ...parsed, time: new Date().toLocaleTimeString() });
+        } catch {
+          // ignore
+        }
+      });
+      eventSource.addEventListener("heartbeat", (e) => {
+        try {
+          const parsed = JSON.parse(e.data);
+          onEvent(parsed);
+        } catch {
+          // ignore
+        }
+      });
+    }
+  } catch {
+    eventSource = null;
+  }
+
+  // Fallback / heartbeat interval
   const id = setInterval(() => {
     const ev = STREAM_EVENTS[_streamIdx % STREAM_EVENTS.length];
     onEvent({ ...ev, time: new Date().toLocaleTimeString() });
     _streamIdx++;
   }, intervalMs);
 
-  return { stop: () => clearInterval(id) };
+  return {
+    stop: () => {
+      clearInterval(id);
+      if (eventSource) eventSource.close();
+    },
+  };
 }
