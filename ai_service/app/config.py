@@ -90,7 +90,7 @@ class Settings(BaseSettings):
     LLM_BASE_DELAY_SECONDS: float = 0.5
 
     # Hugging Face
-    HF_TOKEN: str = Field(default = None, env = "HF_TOKEN")
+    HF_TOKEN: Optional[str] = Field(default=None, env="HF_TOKEN")
 
 
 # Singleton settings instance
