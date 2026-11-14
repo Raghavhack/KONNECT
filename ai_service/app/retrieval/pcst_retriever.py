@@ -191,6 +191,11 @@ class PCSTSubgraphRetriever:
             pruning="gw",
         )
 
+        # Fallback to top seed nodes if PCST pruned all nodes due to low similarity
+        if len(selected_node_indices) == 0 and len(cand_nodes) > 0:
+            top_fallback_count = min(len(cand_nodes), 5)
+            selected_node_indices = list(range(top_fallback_count))
+
         # Filter and cap max nodes
         selected_node_indices = selected_node_indices[: self.max_subgraph_nodes]
 
@@ -207,3 +212,18 @@ class PCSTSubgraphRetriever:
             "total_cost": round(total_cost, 3),
             "prizes": {node_names[i]: float(prizes[i]) for i in selected_node_indices if i < N},
         }
+
+    def retrieve_relevant_chunks(
+        self,
+        query: str,
+        query_embedding: np.ndarray,
+        subgraph: Optional[Dict[str, Any]] = None,
+        top_k: int = 4,
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieves the most relevant text chunks across documents using hybrid
+        vector search and keyword matching.
+        """
+        return self.graph_store.search_chunks(
+            query_embedding=query_embedding.tolist(), query_text=query, top_k=top_k
+        )

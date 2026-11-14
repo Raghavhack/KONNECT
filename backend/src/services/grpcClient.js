@@ -5,8 +5,8 @@ const axios = require("axios");
 const { withExponentialBackoff } = require("../utils/retry");
 
 const PROTO_PATH = path.resolve(__dirname, "../../../shared/proto/intelligence.proto");
-const PYTHON_GRPC_HOST = process.env.PYTHON_GRPC_HOST || "localhost:50051";
-const PYTHON_REST_URL = process.env.PYTHON_REST_URL || "http://localhost:8000/api/v1";
+const PYTHON_GRPC_HOST = process.env.PYTHON_GRPC_HOST || "127.0.0.1:50051";
+const PYTHON_REST_URL = process.env.PYTHON_REST_URL || "http://127.0.0.1:8000/api/v1";
 
 class GrpcIntelligenceClient {
   constructor() {

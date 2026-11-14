@@ -84,8 +84,16 @@ class QueryEngine:
         )
         retrieval_time_ms = (time.perf_counter() - t_ret) * 1000.0
 
-        # Step 4: Build structured context
-        context_str = ContextBuilder.build_llm_context(subgraph=subgraph)
+        # Retrieve relevant grounded document text chunks
+        chunks = self.pcst_retriever.retrieve_relevant_chunks(
+            query=query,
+            query_embedding=q_emb,
+            subgraph=subgraph,
+            top_k=4,
+        )
+
+        # Step 4: Build structured context with exact excerpts and graph entities
+        context_str = ContextBuilder.build_llm_context(subgraph=subgraph, chunks=chunks)
 
         # Step 5: Answer generation with citations
         t_gen = time.perf_counter()

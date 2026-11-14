@@ -2,6 +2,7 @@ const { Queue, Worker } = require("bullmq");
 const IORedis = require("ioredis");
 const config = require("../config/onedrive");
 const onedriveService = require("./onedriveService");
+const gdriveService = require("./gdriveService");
 const grpcClient = require("./grpcClient");
 
 class QueueService {
@@ -161,10 +162,14 @@ class QueueService {
       let content = null;
       if (jobData.documentId && jobData.documentId !== "delta-sync") {
         try {
-          content = await onedriveService.fetchFileContent(jobData.documentId);
+          if (jobData.source === "gdrive") {
+            content = await gdriveService.fetchFileContent(jobData.documentId, jobData.fileName, jobData.mimeType);
+          } else {
+            content = await onedriveService.fetchFileContent(jobData.documentId, jobData.fileName, jobData.mimeType);
+          }
           console.log(
             `[Sync Worker] Fetched content for document ${jobData.documentId} (length: ${
-              typeof content === "string" ? content.length : "binary"
+              typeof content === "string" ? content.length : "parsed"
             })`
           );
         } catch (fetchErr) {

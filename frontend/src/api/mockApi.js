@@ -312,3 +312,65 @@ export function streamEvents(onEvent, intervalMs = 3200) {
     },
   };
 }
+
+/**
+ * Uploads a document (PDF, DOCX, TXT) to the backend ingestion endpoint
+ */
+export async function uploadDocument(file) {
+  const formData = new FormData();
+  formData.append("file", file);
+
+  const res = await fetch("/api/ingest/upload", {
+    method: "POST",
+    body: formData,
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Upload failed: ${errorText}`);
+  }
+
+  return await res.json();
+}
+
+/**
+ * Ingests raw text directly into the knowledge graph
+ */
+export async function ingestText(title, content) {
+  const res = await fetch("/api/ingest/text", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({ title, content }),
+  });
+
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Ingest failed: ${errorText}`);
+  }
+
+  return await res.json();
+}
+
+/**
+ * Triggers scanning and syncing the private 'KONNECT' folder in Google Drive
+ */
+export async function syncGDrive() {
+  const res = await fetch("/api/ingest/sync-gdrive", { method: "POST" });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`Google Drive sync failed: ${errorText}`);
+  }
+  return await res.json();
+}
+
+/**
+ * Triggers scanning and syncing the private 'KONNECT' folder in OneDrive
+ */
+export async function syncOneDrive() {
+  const res = await fetch("/api/ingest/sync-onedrive", { method: "POST" });
+  if (!res.ok) {
+    const errorText = await res.text();
+    throw new Error(`OneDrive sync failed: ${errorText}`);
+  }
+  return await res.json();
+}

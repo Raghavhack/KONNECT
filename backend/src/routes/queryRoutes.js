@@ -15,8 +15,8 @@ router.post("/query", async (req, res) => {
     queryId,
     bypassCache = false,
     kHops = 2,
-    pcstCostWeight = 0.5,
-    similarityThreshold = 0.6,
+    pcstCostWeight = 0.2,
+    similarityThreshold = 0.25,
     useGnn = true,
   } = req.body;
 

@@ -83,7 +83,8 @@ class SemanticCache:
                 port=self.port,
                 password=self.password,
                 db=self.db,
-                socket_timeout=2.0,
+                socket_timeout=1.0,
+                socket_connect_timeout=1.0,
                 decode_responses=False,
             )
             self.client.ping()

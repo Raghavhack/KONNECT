@@ -9,6 +9,7 @@ const onedriveAuthRoutes = require("./routes/onedriveAuthRoutes");
 const onedriveWebhookRoutes = require("./routes/onedriveWebhookRoutes");
 const gdriveRoutes = require("./routes/gdriveRoutes");
 const billingRoutes = require("./routes/billingRoutes");
+const ingestionRoutes = require("./routes/ingestionRoutes");
 
 const app = express();
 
@@ -47,6 +48,7 @@ app.use("/api/webhooks/onedrive", onedriveWebhookRoutes);
 app.use("/api/auth/gdrive", gdriveRoutes);
 app.use("/api/webhooks/gdrive", gdriveRoutes);
 app.use("/api/billing", billingRoutes);
+app.use("/api/ingest", ingestionRoutes);
 
 const PORT = process.env.PORT || 5000;
 

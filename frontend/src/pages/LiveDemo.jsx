@@ -23,6 +23,9 @@ import {
   PlusCircle,
   ArrowLeft,
   Cloud,
+  UploadCloud,
+  FileText,
+  RefreshCw,
 } from "lucide-react";
 import { useAuth } from "../context/AuthContext";
 import GraphCanvas from "../components/shared/GraphCanvas";
@@ -31,6 +34,9 @@ import {
   sendQuery,
   triggerEdit,
   createConversation,
+  uploadDocument,
+  syncGDrive,
+  syncOneDrive,
 } from "../api/mockApi";
 
 // ─── Constants ────────────────────────────────────────────────────────────────
@@ -254,7 +260,7 @@ function AuthGate({ onDemo }) {
 
 // ─── Graph + Terminal panel ────────────────────────────────────────────────────
 
-function GraphPanel({ highlightedNodes, onClose }) {
+function GraphPanel({ highlightedNodes, onClose, nodes = INITIAL_NODES, links = INITIAL_LINKS }) {
   const [log, setLog] = useState([
     { tag: "SYSTEM", text: "Knowledge ingestion stream ready", time: "12:40:00" },
     { tag: "CONNECTED", text: "Listening on gRPC graph-delta-stream", time: "12:40:01" },
@@ -262,8 +268,6 @@ function GraphPanel({ highlightedNodes, onClose }) {
   const [terminalTab, setTerminalTab] = useState("stream");
   const [selectedNode, setSelectedNode] = useState(null);
   const logEndRef = useRef(null);
-  const initialNodes = useMemo(() => INITIAL_NODES, []);
-  const initialLinks = useMemo(() => INITIAL_LINKS, []);
 
   useEffect(() => {
     logEndRef.current?.scrollIntoView({ behavior: "smooth" });
@@ -315,8 +319,8 @@ function GraphPanel({ highlightedNodes, onClose }) {
       <div className="relative h-[240px] shrink-0 border-b border-white/10 bg-[#101114]">
         <GraphCanvas
           live
-          initialNodes={initialNodes}
-          initialLinks={initialLinks}
+          initialNodes={nodes}
+          initialLinks={links}
           highlightedNodeIds={highlightedNodes}
           onSelectNode={setSelectedNode}
           selectedNodeId={selectedNode?.id}
@@ -437,9 +441,15 @@ export default function LiveDemo() {
   const [graphOpen, setGraphOpen] = useState(true);
   const [backendStatus, setBackendStatus] = useState("checking");
   const [onedriveStatus, setOnedriveStatus] = useState({ connected: false });
+  const [gdriveStatus, setGdriveStatus] = useState({ connected: false });
+  const [graphNodes, setGraphNodes] = useState(INITIAL_NODES);
+  const [graphLinks, setGraphLinks] = useState(INITIAL_LINKS);
+  const [isUploading, setIsUploading] = useState(false);
+  const [uploadToast, setUploadToast] = useState(null);
 
   const chatEndRef = useRef(null);
   const inputRef = useRef(null);
+  const fileInputRef = useRef(null);
 
   const activeMessages = messagesByConv[activeConvId] ?? [];
 
@@ -453,6 +463,11 @@ export default function LiveDemo() {
       .then((res) => res.json())
       .then((data) => setOnedriveStatus(data))
       .catch(() => setOnedriveStatus({ connected: false }));
+
+    fetch("/api/auth/gdrive/status")
+      .then((res) => res.json())
+      .then((data) => setGdriveStatus(data))
+      .catch(() => setGdriveStatus({ connected: false }));
   }, []);
 
   // Bootstrap first conversation when authenticated
@@ -565,10 +580,113 @@ export default function LiveDemo() {
     inputRef.current?.focus();
   };
 
-  const handleCitationClick = (nodeId) => {
-    setHighlightedNodes([nodeId]);
+  const handleFileUpload = async (e) => {
+    const file = e.target.files?.[0];
+    if (!file) return;
+
+    setIsUploading(true);
+    setUploadToast(`Ingesting "${file.name}" into knowledge graph...`);
+
+    try {
+      const res = await uploadDocument(file);
+      const docId = res.documentId || `doc_${Date.now()}`;
+
+      const newDocNode = {
+        id: docId,
+        kind: "Doc",
+        label: file.name,
+        x: 320 + (Math.random() - 0.5) * 80,
+        y: 210 + (Math.random() - 0.5) * 80,
+      };
+
+      setGraphNodes((prev) => [...prev, newDocNode]);
+      setHighlightedNodes([docId]);
+      setGraphOpen(true);
+
+      const count = res.graphUpdate?.nodesUpdated || "Multiple";
+      setUploadToast(`"${file.name}" ingested successfully! ${count} entities synchronized.`);
+      setTimeout(() => setUploadToast(null), 6000);
+    } catch (err) {
+      setUploadToast(`Failed to ingest document: ${err.message}`);
+      setTimeout(() => setUploadToast(null), 6000);
+    } finally {
+      setIsUploading(false);
+      if (fileInputRef.current) fileInputRef.current.value = "";
+    }
+  };
+
+  const handleSyncGDrive = async () => {
+    setIsUploading(true);
+    setUploadToast("Scanning private 'KONNECT' folder in Google Drive...");
+    try {
+      const res = await syncGDrive();
+      setUploadToast(res.message);
+      if (res.documents && res.documents.length > 0) {
+        const newNodes = res.documents.map((d, i) => ({
+          id: `gdrive_${i}_${Date.now()}`,
+          kind: "Doc",
+          label: d.fileName,
+          x: 320 + (Math.random() - 0.5) * 100,
+          y: 210 + (Math.random() - 0.5) * 100,
+        }));
+        setGraphNodes((prev) => [...prev, ...newNodes]);
+        setHighlightedNodes(newNodes.map((n) => n.id));
+      }
+      setTimeout(() => setUploadToast(null), 6000);
+    } catch (err) {
+      setUploadToast(`Google Drive sync error: ${err.message}`);
+      setTimeout(() => setUploadToast(null), 6000);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleSyncOneDrive = async () => {
+    setIsUploading(true);
+    setUploadToast("Scanning private 'KONNECT' folder in OneDrive...");
+    try {
+      const res = await syncOneDrive();
+      setUploadToast(res.message);
+      if (res.documents && res.documents.length > 0) {
+        const newNodes = res.documents.map((d, i) => ({
+          id: `onedrive_${i}_${Date.now()}`,
+          kind: "Doc",
+          label: d.fileName,
+          x: 320 + (Math.random() - 0.5) * 100,
+          y: 210 + (Math.random() - 0.5) * 100,
+        }));
+        setGraphNodes((prev) => [...prev, ...newNodes]);
+        setHighlightedNodes(newNodes.map((n) => n.id));
+      }
+      setTimeout(() => setUploadToast(null), 6000);
+    } catch (err) {
+      setUploadToast(`OneDrive sync error: ${err.message}`);
+      setTimeout(() => setUploadToast(null), 6000);
+    } finally {
+      setIsUploading(false);
+    }
+  };
+
+  const handleCitationClick = (citation) => {
+    const targetLabel = typeof citation === "string" ? citation : citation?.entity_name || citation?.label || citation?.name;
+    const match = graphNodes.find(
+      (n) => n.label?.toLowerCase() === targetLabel?.toLowerCase() || n.id === citation?.id || n.id === citation
+    );
+    if (match) {
+      setHighlightedNodes([match.id]);
+    } else if (targetLabel) {
+      const dynamicNode = {
+        id: `cited_${Date.now()}`,
+        kind: "Entity",
+        label: targetLabel,
+        x: 320 + (Math.random() - 0.5) * 120,
+        y: 210 + (Math.random() - 0.5) * 120,
+      };
+      setGraphNodes((prev) => [...prev, dynamicNode]);
+      setHighlightedNodes([dynamicNode.id]);
+    }
     setGraphOpen(true);
-    setTimeout(() => setHighlightedNodes([]), 2500);
+    setTimeout(() => setHighlightedNodes([]), 3500);
   };
 
   const handleKeyDown = (e) => {
@@ -715,19 +833,71 @@ export default function LiveDemo() {
           </div>
 
           <div className="flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              onChange={handleFileUpload}
+              accept=".pdf,.docx,.txt,.md"
+              className="hidden"
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={isUploading}
+              className="inline-flex items-center gap-1.5 rounded-full bg-amber-400/20 px-3 py-1 text-[11px] font-semibold text-amber-600 border border-amber-400/40 hover:bg-amber-400 hover:text-ink-950 transition disabled:opacity-50"
+              title="Upload PDF, Word (DOCX), or Text to build Knowledge Graph"
+            >
+              <UploadCloud size={13} className={isUploading ? "animate-bounce" : ""} />
+              {isUploading ? "Ingesting..." : "Upload Document"}
+            </button>
+
+            {gdriveStatus.connected ? (
+              <div className="inline-flex items-center gap-1 rounded-full bg-emerald-500/10 pl-2.5 pr-1 py-0.5 text-[11px] font-medium text-emerald-600 ring-1 ring-emerald-500/30">
+                <CheckCircle2 size={12} />
+                <span>Google Drive: KONNECT</span>
+                <button
+                  onClick={handleSyncGDrive}
+                  disabled={isUploading}
+                  title="Sync documents from Google Drive 'KONNECT' folder"
+                  className="rounded-full p-1 text-emerald-600 hover:bg-emerald-500/20 transition disabled:opacity-50"
+                >
+                  <RefreshCw size={11} className={isUploading ? "animate-spin" : ""} />
+                </button>
+              </div>
+            ) : (
+              <a
+                href="http://localhost:5000/api/auth/gdrive/connect"
+                target="_blank"
+                rel="noreferrer"
+                className="inline-flex items-center gap-1.5 rounded-full bg-emerald-500/10 px-2.5 py-1 text-[11px] font-medium text-emerald-600 ring-1 ring-emerald-500/30 hover:bg-emerald-600 hover:text-white transition"
+                title="Connect Google Drive (Private 'KONNECT' folder only)"
+              >
+                <Cloud size={12} /> Google Drive
+              </a>
+            )}
+
             {onedriveStatus.connected ? (
-              <span className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-[11px] font-medium text-blue-600 ring-1 ring-blue-500/30">
-                <Cloud size={12} /> OneDrive: {onedriveStatus.account?.displayName || "Connected"}
-              </span>
+              <div className="inline-flex items-center gap-1 rounded-full bg-blue-500/10 pl-2.5 pr-1 py-0.5 text-[11px] font-medium text-blue-600 ring-1 ring-blue-500/30">
+                <Cloud size={12} />
+                <span>OneDrive: KONNECT</span>
+                <button
+                  onClick={handleSyncOneDrive}
+                  disabled={isUploading}
+                  title="Sync documents from OneDrive 'KONNECT' folder"
+                  className="rounded-full p-1 text-blue-600 hover:bg-blue-500/20 transition disabled:opacity-50"
+                >
+                  <RefreshCw size={11} className={isUploading ? "animate-spin" : ""} />
+                </button>
+              </div>
             ) : (
               <a
                 href="http://localhost:5000/api/auth/onedrive/connect"
                 target="_blank"
                 rel="noreferrer"
                 className="inline-flex items-center gap-1.5 rounded-full bg-blue-500/10 px-2.5 py-1 text-[11px] font-medium text-blue-600 ring-1 ring-blue-500/30 hover:bg-blue-600 hover:text-white transition"
-                title="Click to authenticate Microsoft Graph OAuth 2.0"
+                title="Connect OneDrive (Private 'KONNECT' folder only)"
               >
-                <Cloud size={12} /> Connect OneDrive
+                <Cloud size={12} /> OneDrive
               </a>
             )}
 
@@ -748,6 +918,17 @@ export default function LiveDemo() {
             </button>
           </div>
         </header>
+
+        {uploadToast && (
+          <div className="flex shrink-0 items-center justify-between bg-amber-400 px-4 py-2 text-xs font-semibold text-ink-950 transition-all">
+            <span className="flex items-center gap-1.5">
+              <CheckCircle2 size={14} /> {uploadToast}
+            </span>
+            <button onClick={() => setUploadToast(null)}>
+              <X size={13} />
+            </button>
+          </div>
+        )}
 
         {/* Messages */}
         <div className="flex flex-1 overflow-hidden">
@@ -785,6 +966,8 @@ export default function LiveDemo() {
               >
                 <GraphPanel
                   highlightedNodes={highlightedNodes}
+                  nodes={graphNodes}
+                  links={graphLinks}
                   onClose={() => setGraphOpen(false)}
                 />
               </motion.div>
