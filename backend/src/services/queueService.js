@@ -2,6 +2,7 @@ const { Queue, Worker } = require("bullmq");
 const IORedis = require("ioredis");
 const config = require("../config/onedrive");
 const onedriveService = require("./onedriveService");
+const googleDriveService = require("./googleDriveService");
 
 class QueueService {
   constructor() {
@@ -9,7 +10,7 @@ class QueueService {
     this.queue = null;
     this.worker = null;
     this.processedIdempotencyKeys = new Set();
-    this.debounceTimers = new Map(); // documentId -> { timeout, eventData }
+    this.debounceTimers = new Map();
 
     this.init();
   }
@@ -20,13 +21,19 @@ class QueueService {
         maxRetriesPerRequest: null,
         lazyConnect: true,
         connectTimeout: 3000,
-        retryStrategy: () => null, // Don't crash if Redis is unavailable locally
+        retryStrategy: () => null,
+      });
+
+      this.redisClient.on("error", (err) => {
+        console.warn("[Redis] Connection error:", err.message);
       });
 
       await this.redisClient.connect();
       this.redisAvailable = true;
+
       console.log("[Queue] Connected to Redis. Initializing BullMQ...");
 
+      // Keep the existing queue name to preserve compatibility.
       this.queue = new Queue("onedrive-sync-queue", {
         connection: this.redisClient,
         defaultJobOptions: {
@@ -60,62 +67,83 @@ class QueueService {
       });
     } catch (err) {
       this.redisAvailable = false;
+
       console.warn(
-        `[Queue] Redis not reachable (${err.message}). Using built-in In-Memory Queue with debouncing & idempotency fallback.`
+        `[Queue] Redis not reachable (${err.message}). Using in-memory processing.`
       );
     }
   }
 
-  /**
-   * Idempotency check: ensures retried webhook deliveries don't double-process.
-   */
   isDuplicate(idempotencyKey) {
     if (!idempotencyKey) return false;
+
     if (this.processedIdempotencyKeys.has(idempotencyKey)) {
       return true;
     }
+
     this.processedIdempotencyKeys.add(idempotencyKey);
 
-    // Keep set bounded to last 5,000 keys to avoid memory bloat
     if (this.processedIdempotencyKeys.size > 5000) {
-      const oldestKey = this.processedIdempotencyKeys.values().next().value;
+      const oldestKey =
+        this.processedIdempotencyKeys.values().next().value;
+
       this.processedIdempotencyKeys.delete(oldestKey);
     }
+
     return false;
   }
 
-  /**
-   * Debouncing per document: rapid successive edits to the same file collapse into one job,
-   * processed after a quiet window (e.g., 3000ms).
-   */
-  enqueueDebounced(documentId, eventPayload, idempotencyKey) {
-    // 1. Check idempotency
+  enqueueDebounced(
+    documentId,
+    eventPayload = {},
+    idempotencyKey,
+    provider = "onedrive"
+  ) {
+    provider = eventPayload.provider || provider;
+
+    if (!["onedrive", "google"].includes(provider)) {
+      throw new Error(`Unsupported provider: ${provider}`);
+    }
+
     if (this.isDuplicate(idempotencyKey)) {
       console.log(
-        `[Debounce] Skipped duplicate event with idempotency key: ${idempotencyKey}`
+        `[Debounce] Skipped duplicate ${provider} event: ${idempotencyKey}`
       );
+
       return { status: "duplicate_skipped" };
     }
 
-    // 2. Clear existing debounce timer for this document if rapid edit occurred
-    if (this.debounceTimers.has(documentId)) {
-      clearTimeout(this.debounceTimers.get(documentId).timer);
+    // Prevent Google and OneDrive files with the same ID
+    // from sharing a debounce timer.
+    const debounceKey = `${provider}:${documentId}`;
+
+    if (this.debounceTimers.has(debounceKey)) {
+      clearTimeout(this.debounceTimers.get(debounceKey).timer);
+
       console.log(
-        `[Debounce] Collapsing rapid edit for document [${documentId}]. Resetting quiet window timer.`
+        `[Debounce] Collapsing rapid edit for ${debounceKey}`
       );
     }
 
-    // 3. Schedule the collapsed job after the quiet window
     const timer = setTimeout(async () => {
-      this.debounceTimers.delete(documentId);
-      await this.dispatchJob({
-        documentId,
-        ...eventPayload,
-        dispatchedAt: new Date().toISOString(),
-      });
+      this.debounceTimers.delete(debounceKey);
+
+      try {
+        await this.dispatchJob({
+          ...eventPayload,
+          provider,
+          documentId,
+          dispatchedAt: new Date().toISOString(),
+        });
+      } catch (err) {
+        console.error(
+          `[Queue] Failed to dispatch ${debounceKey}:`,
+          err.message
+        );
+      }
     }, config.debounceQuietWindowMs);
 
-    this.debounceTimers.set(documentId, {
+    this.debounceTimers.set(debounceKey, {
       timer,
       eventPayload,
       receivedAt: Date.now(),
@@ -123,70 +151,110 @@ class QueueService {
 
     return {
       status: "debounced",
-      quietWindowMs: config.debounceQuietWindowMs,
+      provider,
       documentId,
+      quietWindowMs: config.debounceQuietWindowMs,
     };
   }
 
-  /**
-   * Dispatches the job to BullMQ on Redis if available, or processes via in-memory worker
-   */
   async dispatchJob(jobData) {
+    const provider = jobData.provider || "onedrive";
+
     if (this.redisAvailable && this.queue) {
-      const job = await this.queue.add("process-onedrive-document", jobData, {
-        jobId: `doc-${jobData.documentId}-${Date.now()}`,
-      });
-      console.log(`[Queue] Enqueued job #${job.id} for document ${jobData.documentId}`);
-      return job;
-    } else {
-      console.log(
-        `[In-Memory Queue] Processing document [${jobData.documentId}]...`
+      const job = await this.queue.add(
+        "process-document",
+        jobData,
+        {
+          jobId: `doc-${provider}-${jobData.documentId}-${Date.now()}`,
+        }
       );
-      return await this.processSyncJob(jobData);
+
+      console.log(
+        `[Queue] Enqueued ${provider} job #${job.id} for ${jobData.documentId}`
+      );
+
+      return job;
     }
+
+    console.log(
+      `[In-Memory Queue] Processing ${provider} document ${jobData.documentId}`
+    );
+
+    return await this.processSyncJob(jobData);
   }
 
-  /**
-   * Worker job execution:
-   * 1. Fetches document delta or file contents from Microsoft Graph
-   * 2. (In Phase 2) Streams file to Python Intelligence Service via gRPC
-   */
   async processSyncJob(jobData) {
+    const provider = jobData.provider || "onedrive";
+    const documentId = jobData.documentId;
+
     try {
       console.log(
-        `[Sync Worker] Beginning processing for document ${jobData.documentId}`
+        `[Sync Worker] Processing ${provider} document ${documentId}`
       );
 
+      // Handle deleted or removed Google Drive files.
+      if (provider === "google" && (
+        jobData.removed === true ||
+        jobData.file?.trashed === true
+      )) {
+        console.log(
+          `[Google Drive] File ${documentId} was removed or trashed.`
+        );
+
+        // TODO: Remove this document's contributions
+        // from the KONNECT knowledge graph.
+
+        return {
+          success: true,
+          provider,
+          documentId,
+          removed: true,
+          processedAt: new Date().toISOString(),
+        };
+      }
+
       let content = null;
-      if (jobData.documentId && jobData.documentId !== "delta-sync") {
-        try {
-          content = await onedriveService.fetchFileContent(jobData.documentId);
+
+      if (documentId && documentId !== "delta-sync") {
+        if (provider === "google") {
+          const result = await googleDriveService.readFile(documentId);
+          content = result.content;
+
           console.log(
-            `[Sync Worker] Fetched content for document ${jobData.documentId} (length: ${
-              typeof content === "string" ? content.length : "binary"
-            })`
+              `[Google Drive] Fetched ${result.file.name} (${content.length} characters/bytes)`
+        );
+        } else if (provider === "onedrive") {
+          content = await onedriveService.fetchFileContent(documentId);
+
+          console.log(
+            `[OneDrive] Fetched content for ${documentId}`
           );
-        } catch (fetchErr) {
-          console.warn(
-            `[Sync Worker] Could not fetch raw content for ${jobData.documentId}: ${fetchErr.message}`
-          );
+        } else {
+          throw new Error(`Unsupported provider: ${provider}`);
         }
       }
 
-      // Next step in KONNECT architecture:
-      // gRPC call to Python service to parse AST, run spaCy NER, Cypher MERGE in Neo4j,
-      // and ROLAND GRU 2-hop re-embedding.
+      // TODO: Send content to the KONNECT intelligence layer.
+      // This is where the gRPC integration will be connected.
+
       return {
         success: true,
-        documentId: jobData.documentId,
+        provider,
+        documentId,
         contentLength: content ? content.length : 0,
         processedAt: new Date().toISOString(),
       };
     } catch (err) {
-      console.error(`[Sync Worker] Error processing document:`, err.message);
+      console.error(
+        `[Sync Worker] ${provider} document ${documentId} failed:`,
+        err.message
+      );
+
       throw err;
     }
   }
 }
 
 module.exports = new QueueService();
+
+console.log("[Debug] Queue service initialized");

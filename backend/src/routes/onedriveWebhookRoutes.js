@@ -3,7 +3,7 @@ const router = express.Router();
 const config = require("../config/onedrive");
 const queueService = require("../services/queueService");
 const onedriveService = require("../services/onedriveService");
-
+console.log("[Debug] OneDrive webhook routes loaded");
 /**
  * POST & GET /api/webhooks/onedrive
  *
