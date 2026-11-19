@@ -1,12 +1,28 @@
 const express = require("express");
 const cors = require("cors");
-require("dotenv").config();
+const path = require("path");
+process.on("beforeExit", (code) => {
+  console.log("[Debug] Node beforeExit:", code);
+  console.log("[Debug] Active resources:", process.getActiveResourcesInfo());
+});
+
+process.on("exit", (code) => {
+  console.log("[Debug] Node exit:", code);
+});
+
+process.on("uncaughtExceptionMonitor", (err) => {
+  console.error("[Debug] Uncaught exception:", err);
+});
+require("dotenv").config({
+  path: path.resolve(__dirname, "../../.env"),
+});
 
 const healthRoutes = require("./routes/healthRoutes");
 const queryRoutes = require("./routes/queryRoutes");
 const streamRoutes = require("./routes/streamRoutes");
 const onedriveAuthRoutes = require("./routes/onedriveAuthRoutes");
 const onedriveWebhookRoutes = require("./routes/onedriveWebhookRoutes");
+const googleAuthRoutes = require("./routes/googleAuthRoutes");
 const gdriveRoutes = require("./routes/gdriveRoutes");
 const billingRoutes = require("./routes/billingRoutes");
 const ingestionRoutes = require("./routes/ingestionRoutes");
@@ -17,6 +33,7 @@ app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use(express.text({ type: "text/*" }));
+
 
 app.get("/", (req, res) => {
   res.json({
@@ -50,8 +67,21 @@ app.use("/api/webhooks/gdrive", gdriveRoutes);
 app.use("/api/billing", billingRoutes);
 app.use("/api/ingest", ingestionRoutes);
 
+// app.listen(PORT, () => {
+//   console.log(`Server running on port ${PORT}`);
+// });
 const PORT = process.env.PORT || 5000;
 
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
+  console.log("[Debug] Server listening:", server.listening);
+  server.ref();
+});
+
+server.on("close", () => {
+  console.log("[Debug] HTTP server was closed!");
+});
+
+server.on("error", (err) => {
+  console.error("[Debug] HTTP server error:", err);
 });

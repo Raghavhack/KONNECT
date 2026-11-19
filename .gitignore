@@ -6,6 +6,8 @@ node_modules/
 .env.*
 !.env.example
 .onedrive_tokens.json
+.google_tokens.json
+.google_sync_state.json
 
 # Python
 __pycache__/
