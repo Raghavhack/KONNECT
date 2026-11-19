@@ -2,7 +2,8 @@ const { Queue, Worker } = require("bullmq");
 const IORedis = require("ioredis");
 const config = require("../config/onedrive");
 const onedriveService = require("./onedriveService");
-const googleDriveService = require("./googleDriveService");
+const gdriveService = require("./gdriveService");
+const grpcClient = require("./grpcClient");
 
 class QueueService {
   constructor() {
@@ -214,34 +215,57 @@ class QueueService {
       }
 
       let content = null;
-
-      if (documentId && documentId !== "delta-sync") {
-        if (provider === "google") {
-          const result = await googleDriveService.readFile(documentId);
-          content = result.content;
-
+      if (jobData.documentId && jobData.documentId !== "delta-sync") {
+        try {
+          if (jobData.source === "gdrive") {
+            content = await gdriveService.fetchFileContent(jobData.documentId, jobData.fileName, jobData.mimeType);
+          } else {
+            content = await onedriveService.fetchFileContent(jobData.documentId, jobData.fileName, jobData.mimeType);
+          }
           console.log(
-              `[Google Drive] Fetched ${result.file.name} (${content.length} characters/bytes)`
-        );
-        } else if (provider === "onedrive") {
-          content = await onedriveService.fetchFileContent(documentId);
-
-          console.log(
-            `[OneDrive] Fetched content for ${documentId}`
+            `[Sync Worker] Fetched content for document ${jobData.documentId} (length: ${
+              typeof content === "string" ? content.length : "parsed"
+            })`
+          );
+        } catch (fetchErr) {
+          console.warn(
+            `[Sync Worker] Could not fetch raw content for ${jobData.documentId}: ${fetchErr.message}`
           );
         } else {
           throw new Error(`Unsupported provider: ${provider}`);
         }
       }
 
-      // TODO: Send content to the KONNECT intelligence layer.
-      // This is where the gRPC integration will be connected.
+      // gRPC call to Python service to parse AST, run spaCy NER, Cypher MERGE in Neo4j,
+      // and ROLAND GRU 2-hop re-embedding with cache invalidation
+      let intelligenceResult = null;
+      if (content) {
+        try {
+          intelligenceResult = await grpcClient.updateKnowledgeGraph({
+            documentId: jobData.documentId,
+            title: jobData.fileName || jobData.documentId,
+            content: typeof content === "string" ? content : content.toString("utf8"),
+            kHops: jobData.kHops || 2,
+            triggerLeiden: true,
+            invalidateCache: true,
+          });
+          console.log(
+            `[Sync Worker] Python Intelligence Service updated graph for [${jobData.documentId}]:`,
+            intelligenceResult?.nodes_updated ?? "OK"
+          );
+        } catch (grpcErr) {
+          console.warn(
+            `[Sync Worker] Python Intelligence Service call skipped or failed: ${grpcErr.message}`
+          );
+        }
+      }
 
       return {
         success: true,
         provider,
         documentId,
         contentLength: content ? content.length : 0,
+        intelligenceResult,
         processedAt: new Date().toISOString(),
       };
     } catch (err) {

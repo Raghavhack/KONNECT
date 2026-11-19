@@ -135,7 +135,15 @@ class IntelligenceServicer(pb2_grpc.IntelligenceServiceServicer):
         """
         client_q = queue.Queue(maxsize=100)
         self.stream_queues.append(client_q)
-        logger.info(f"Client '{request.client_id}' connected to graph update stream.")
+        client_id = getattr(request, "client_id", "default_client")
+        if isinstance(request, (bytes, bytearray)):
+            try:
+                req_obj = pb2.StreamGraphUpdatesRequest()
+                req_obj.ParseFromString(request)
+                client_id = req_obj.client_id or "default_client"
+            except Exception:
+                client_id = "binary_client"
+        logger.info(f"Client '{client_id}' connected to graph update stream.")
 
         try:
             while True:
@@ -152,7 +160,7 @@ class IntelligenceServicer(pb2_grpc.IntelligenceServiceServicer):
                     # Heartbeat
                     continue
         except Exception as e:
-            logger.info(f"Stream client '{request.client_id}' disconnected ({e}).")
+            logger.info(f"Stream client '{client_id}' disconnected ({e}).")
         finally:
             if client_q in self.stream_queues:
                 self.stream_queues.remove(client_q)

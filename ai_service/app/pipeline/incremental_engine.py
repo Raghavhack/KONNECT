@@ -88,6 +88,8 @@ class IncrementalEngine:
         # Step 1: Preprocess & Chunk
         t0 = time.perf_counter()
         chunks = self.chunker.chunk_document(document_id=document_id, text=content)
+        for c in chunks:
+            c.embedding = self.embedder.embed_text(c.text).tolist()
         prep_time_ms = (time.perf_counter() - t0) * 1000.0
 
         # Step 2: GraphRAG Extraction

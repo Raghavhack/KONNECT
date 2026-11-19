@@ -75,22 +75,22 @@ class Settings(BaseSettings):
     PCST_PRUNING: str = "gw"  # Goemans-Williamson
     PCST_USE_GNN: bool = Field(default=True, env="PCST_USE_GNN")  # Set False for Arm D ablation
 
-    # LLM Settings (OpenAI / Anthropic)
-    LLM_PROVIDER: str = Field(default="openai", env="LLM_PROVIDER")  # "openai" or "anthropic" or "gemini"
+    # LLM Settings (Ollama / OpenAI / Anthropic / Gemini)
+    LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")
     GEMINI_API_KEY: Optional[str] = Field(default=None, env="GEMINI_API_KEY")
-    GEMINI_MODEL: str = Field(default="", env="GEMINI_MODEL")
+    GEMINI_MODEL: str = Field(default="gemini-2.5-flash", env="GEMINI_MODEL")
     OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     OPENAI_MODEL: str = Field(default="gpt-4o", env="OPENAI_MODEL")
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
     ANTHROPIC_MODEL: str = Field(default="claude-3-5-sonnet-20241022", env="ANTHROPIC_MODEL")
-    OLLAMA_MODEL: str = Field(default="", env="OLLAMA_MODEL")
+    OLLAMA_MODEL: str = Field(default="llama3.2", env="OLLAMA_MODEL")
     OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
     LLM_TEMPERATURE: float = 0.0
     LLM_MAX_RETRIES: int = 5
     LLM_BASE_DELAY_SECONDS: float = 0.5
 
     # Hugging Face
-    HF_TOKEN: str = Field(default = None, env = "HF_TOKEN")
+    HF_TOKEN: Optional[str] = Field(default=None, env="HF_TOKEN")
 
 
 # Singleton settings instance

@@ -10,14 +10,14 @@ from .client import LLMClient
 
 logger = logging.getLogger(__name__)
 
-ANSWER_SYSTEM_PROMPT = """You are KONNECT's AI reasoning engine.
-Your mission is to answer user queries truthfully, grounded strictly in the provided Knowledge Graph context.
+ANSWER_SYSTEM_PROMPT = """You are KONNECT AI, an intelligent workspace assistant connected to a live Knowledge Graph and connected workspace documents.
 
 Guidelines:
-1. Ground every claim in the entities and relationships provided.
-2. Whenever you mention or rely on information from an entity, cite it explicitly using bracket notation: [Entity Name].
-3. If the context does not contain sufficient information to answer the question, state so transparently.
-4. Provide structured, lucid, and comprehensive responses.
+1. Conversational Queries & Greetings: For greetings (e.g. "hi", "hello", "how are you?"), user identity ("what is my name?", "who am I?"), or general common-sense questions, answer warmly, naturally, and helpfully.
+2. Workspace & Knowledge Graph Grounding: When answering questions about documents, people, projects, systems, or workspace facts, ground your answer directly in the provided Document Excerpts and Knowledge Graph context.
+3. Verifiable Citations: In workspace answers, cite key entities explicitly using bracket notation: [Entity Name] (e.g. [Pranay Mehta], [Punjab Engineering College], [Flowcraft Systems], [AION]).
+4. Specific Metrics & Precision: When asked for specific facts (such as college, CGPA, degree, technologies, company names, project details, ratings, dates, or contact info), extract the exact values directly from the Document Excerpts and state them accurately and prominently (e.g. stating the exact CGPA value, college name, or project tech stack).
+5. Direct & Structured: Provide clear, accurate, and comprehensive responses without unnecessary hesitation or generic disclaimers when facts are present in the provided context.
 """
 
 
@@ -52,7 +52,7 @@ class AnswerGenerator:
         )
 
         # Parse bracketed citations e.g. [Entity Name]
-        cited_names = set(re.findall(r"\[([a-zA-Z0-9_\s\.\-]+)\]", answer_text))
+        cited_names = set(re.findall(r"\[([a-zA-Z0-9_\s\.\-\/\+]+)\]", answer_text))
         node_map = {n.get("name", "").lower(): n for n in retrieved_nodes}
 
         citations = []
@@ -66,6 +66,14 @@ class AnswerGenerator:
                     "document_id": node_data.get("document_id", "doc_primary"),
                     "quote": node_data.get("description", "")[:120],
                     "relevance_score": float(node_data.get("importance_score", 1.0)),
+                })
+            elif len(name.strip()) > 1 and not name.strip().isdigit():
+                citations.append({
+                    "entity_id": f"ent_{abs(hash(norm_name)) % 100000}",
+                    "entity_name": name.strip(),
+                    "document_id": "doc_primary",
+                    "quote": f"Cited in response: {name.strip()}",
+                    "relevance_score": 1.0,
                 })
 
         # If no explicit bracket citations, cite top nodes in retrieved subgraph

@@ -2,11 +2,13 @@ const axios = require("axios");
 const msal = require("@azure/msal-node");
 const config = require("../config/onedrive");
 const tokenStore = require("./tokenStore");
+const documentParser = require("./documentParser");
 const { withExponentialBackoff } = require("../utils/retry");
 
 class OneDriveService {
   constructor() {
     this._msalClient = null;
+    this.konnectFolderId = null;
   }
 
   getMsalClient() {
@@ -124,10 +126,91 @@ class OneDriveService {
   }
 
   /**
-   * Registers a Microsoft Graph Webhook Subscription for changes on user's drive root.
+   * Automatically discovers or creates the dedicated private 'KONNECT' folder in OneDrive.
+   * Scopes all indexing, delta syncing, and file reading exclusively to this folder.
+   */
+  async getOrCreateKonnectFolder() {
+    const token = await this.getValidAccessToken();
+    const stored = tokenStore.getTokens();
+    if (stored?.konnectFolderId) {
+      this.konnectFolderId = stored.konnectFolderId;
+      return this.konnectFolderId;
+    }
+
+    try {
+      // 1. Check if folder already exists at root:/KONNECT
+      const res = await withExponentialBackoff(
+        () =>
+          axios.get(`${config.graphEndpoint}/me/drive/root:/KONNECT`, {
+            headers: { Authorization: `Bearer ${token}` },
+          }),
+        { operationName: "GetKonnectFolder" }
+      );
+      if (res.data?.id) {
+        this.konnectFolderId = res.data.id;
+        tokenStore.setTokens({ ...stored, konnectFolderId: res.data.id });
+        console.log(`[OneDrive] Found existing private folder 'KONNECT' (ID: ${this.konnectFolderId})`);
+        return this.konnectFolderId;
+      }
+    } catch (err) {
+      if (err.response?.status === 404) {
+        // 2. Create the folder if not present
+        const createRes = await withExponentialBackoff(
+          () =>
+            axios.post(
+              `${config.graphEndpoint}/me/drive/root/children`,
+              {
+                name: "KONNECT",
+                folder: {},
+                description: "Dedicated workspace folder for KONNECT AI. Only documents inside this folder are processed.",
+              },
+              {
+                headers: {
+                  Authorization: `Bearer ${token}`,
+                  "Content-Type": "application/json",
+                },
+              }
+            ),
+          { operationName: "CreateKonnectFolder" }
+        );
+        this.konnectFolderId = createRes.data.id;
+        tokenStore.setTokens({ ...stored, konnectFolderId: this.konnectFolderId });
+        console.log(`[OneDrive] Created private folder 'KONNECT' (ID: ${this.konnectFolderId})`);
+        return this.konnectFolderId;
+      }
+      console.warn(`[OneDrive] Error locating/creating KONNECT folder:`, err.message);
+    }
+    return null;
+  }
+
+  /**
+   * Lists files strictly inside the 'KONNECT' folder.
+   */
+  async listFiles() {
+    const token = await this.getValidAccessToken();
+    const folderId = await this.getOrCreateKonnectFolder();
+
+    if (!folderId) {
+      return [];
+    }
+
+    const res = await withExponentialBackoff(
+      () =>
+        axios.get(`${config.graphEndpoint}/me/drive/items/${folderId}/children`, {
+          headers: { Authorization: `Bearer ${token}` },
+        }),
+      { operationName: "ListKonnectFolderFiles" }
+    );
+
+    return res.data.value || [];
+  }
+
+  /**
+   * Registers a Microsoft Graph Webhook Subscription strictly scoped to the KONNECT folder.
    */
   async createWebhookSubscription(customNotificationUrl = null) {
     const token = await this.getValidAccessToken();
+    const folderId = await this.getOrCreateKonnectFolder();
     const notificationUrl =
       customNotificationUrl || config.webhookNotificationUrl;
 
@@ -136,7 +219,7 @@ class OneDriveService {
     const payload = {
       changeType: "updated,created,deleted",
       notificationUrl: notificationUrl,
-      resource: "/me/drive/root",
+      resource: folderId ? `/me/drive/items/${folderId}` : "/me/drive/root",
       expirationDateTime: expirationDate,
       clientState: config.clientStateSecret,
     };
@@ -152,19 +235,22 @@ class OneDriveService {
       { operationName: "CreateWebhookSubscription" }
     );
 
-    console.log(`[OneDrive] Webhook subscription created. ID: ${res.data.id}`);
+    console.log(`[OneDrive] Webhook subscription created for KONNECT folder. ID: ${res.data.id}`);
     return res.data;
   }
 
   /**
-   * Queries OneDrive Delta to get all newly created, updated, or deleted files
+   * Queries OneDrive Delta strictly for files inside the KONNECT folder.
    */
   async fetchDeltaChanges() {
     const token = await this.getValidAccessToken();
+    const folderId = await this.getOrCreateKonnectFolder();
     const existingDeltaToken = tokenStore.getDeltaToken();
 
     let queryUrl = existingDeltaToken
       ? existingDeltaToken
+      : folderId
+      ? `${config.graphEndpoint}/me/drive/items/${folderId}/delta`
       : `${config.graphEndpoint}/me/drive/root/delta`;
 
     let allChanges = [];
@@ -196,9 +282,9 @@ class OneDriveService {
   }
 
   /**
-   * Downloads the raw text or stream of a specific OneDrive file item
+   * Downloads and parses a specific OneDrive file item (PDF, DOCX, TXT).
    */
-  async fetchFileContent(driveItemId) {
+  async fetchFileContent(driveItemId, fileName = "", mimeType = "") {
     const token = await this.getValidAccessToken();
     const res = await withExponentialBackoff(
       () =>
@@ -206,13 +292,14 @@ class OneDriveService {
           `${config.graphEndpoint}/me/drive/items/${driveItemId}/content`,
           {
             headers: { Authorization: `Bearer ${token}` },
-            responseType: "text",
+            responseType: "arraybuffer",
           }
         ),
       { operationName: `FetchFileContent-${driveItemId}` }
     );
 
-    return res.data;
+    const buffer = Buffer.from(res.data);
+    return await documentParser.parseBuffer(buffer, fileName, mimeType);
   }
 }
 

@@ -18,9 +18,14 @@ require("dotenv").config({
 });
 
 const healthRoutes = require("./routes/healthRoutes");
+const queryRoutes = require("./routes/queryRoutes");
+const streamRoutes = require("./routes/streamRoutes");
 const onedriveAuthRoutes = require("./routes/onedriveAuthRoutes");
 const onedriveWebhookRoutes = require("./routes/onedriveWebhookRoutes");
 const googleAuthRoutes = require("./routes/googleAuthRoutes");
+const gdriveRoutes = require("./routes/gdriveRoutes");
+const billingRoutes = require("./routes/billingRoutes");
+const ingestionRoutes = require("./routes/ingestionRoutes");
 
 const app = express();
 
@@ -33,23 +38,34 @@ app.use(express.text({ type: "text/*" }));
 app.get("/", (req, res) => {
   res.json({
     message: "KONNECT Backend is running!",
+    architecture: "Node.js Orchestration Layer + gRPC Transport + Python Intelligence Service",
     endpoints: {
       health: "/api/health",
+      query: "POST /api/query",
+      stream: "GET /api/stream",
+      cacheInvalidate: "POST /api/cache/invalidate",
+      simulateEdit: "POST /api/simulate-edit",
       onedriveAuth: "/api/auth/onedrive/connect",
       onedriveStatus: "/api/auth/onedrive/status",
-      googleAuth: "/api/auth/google/connect",
-      googleStatus: "/api/auth/google/status",
-      onedriveWebhook: "/api/webhooks/onedrive",
+      onedriveWebhook: "POST /api/webhooks/onedrive",
+      gdriveAuth: "/api/auth/gdrive/connect",
+      gdriveStatus: "/api/auth/gdrive/status",
+      gdriveWebhook: "POST /api/webhooks/gdrive",
+      billingPlans: "GET /api/billing/plans",
+      billingCheckout: "POST /api/billing/checkout",
     },
   });
 });
 
 app.use("/api/health", healthRoutes);
+app.use("/api", queryRoutes);
+app.use("/api", streamRoutes);
 app.use("/api/auth/onedrive", onedriveAuthRoutes);
 app.use("/api/webhooks/onedrive", onedriveWebhookRoutes);
-app.use("/api/auth/google", googleAuthRoutes);
-
-// const PORT = process.env.PORT || 5000;
+app.use("/api/auth/gdrive", gdriveRoutes);
+app.use("/api/webhooks/gdrive", gdriveRoutes);
+app.use("/api/billing", billingRoutes);
+app.use("/api/ingest", ingestionRoutes);
 
 // app.listen(PORT, () => {
 //   console.log(`Server running on port ${PORT}`);

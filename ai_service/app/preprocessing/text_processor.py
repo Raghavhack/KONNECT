@@ -90,17 +90,26 @@ class TextProcessor:
         if not cleaned:
             return []
 
+        IGNORED_LABELS = {"CARDINAL", "QUANTITY", "ORDINAL", "PERCENT", "TIME"}
         if self.nlp is not None and self.nlp.has_pipe("ner"):
             doc = self.nlp(cleaned)
-            return [
-                {
-                    "text": ent.text,
-                    "label": ent.label_,
-                    "start_char": ent.start_char,
-                    "end_char": ent.end_char,
-                }
-                for ent in doc.ents
-            ]
+            results = []
+            for ent in doc.ents:
+                t = ent.text.strip()
+                if (
+                    ent.label_ not in IGNORED_LABELS
+                    and len(t) > 2
+                    and not t.isdigit()
+                    and not re.match(r"^[\d\.\+\-\/]+$", t)
+                ):
+                    results.append({
+                        "text": t,
+                        "label": ent.label_,
+                        "start_char": ent.start_char,
+                        "end_char": ent.end_char,
+                    })
+            if results:
+                return results
 
         # Fast heuristic/regex entity detector (capitalized sequences)
         pattern = r"\b[A-Z][a-zA-Z0-9_]+(?:\s+[A-Z][a-zA-Z0-9_]+)*\b"

@@ -29,6 +29,54 @@ class InMemoryGraphFallback:
         self.nodes: Dict[str, Dict[str, Any]] = {}
         self.edges: List[Dict[str, Any]] = []
         self.documents: Dict[str, Dict[str, Any]] = {}
+        self.chunks: Dict[str, Dict[str, Any]] = {}
+
+    def upsert_chunk(
+        self,
+        chunk_id: str,
+        document_id: str,
+        title: str,
+        text: str,
+        chunk_index: int,
+        embedding: Optional[List[float]] = None,
+    ) -> None:
+        self.chunks[chunk_id] = {
+            "chunk_id": chunk_id,
+            "document_id": document_id,
+            "title": title,
+            "text": text,
+            "chunk_index": chunk_index,
+            "embedding": embedding,
+        }
+
+    def search_chunks(
+        self, query_vector: List[float], query_text: str = "", top_k: int = 4
+    ) -> List[Dict[str, Any]]:
+        if not self.chunks:
+            return []
+        results = []
+        q = np.array(query_vector, dtype=np.float32)
+        norm_q = np.linalg.norm(q) + 1e-9
+        query_words = set(query_text.lower().split()) if query_text else set()
+
+        for c in self.chunks.values():
+            text = c.get("text", "")
+            score = 0.0
+            emb = c.get("embedding")
+            if emb:
+                v = np.array(emb, dtype=np.float32)
+                score = float(np.dot(q, v) / (norm_q * (np.linalg.norm(v) + 1e-9)))
+
+            # Keyword presence boost (for specific queries like "cgpa", "college", names)
+            text_lower = text.lower()
+            keyword_matches = sum(1 for w in query_words if len(w) > 2 and w in text_lower)
+            if keyword_matches > 0:
+                score += 0.25 * min(keyword_matches, 3)
+
+            results.append({**c, "score": score})
+
+        results.sort(key=lambda x: x["score"], reverse=True)
+        return results[:top_k]
 
     def upsert_node(self, label: str, name: str, properties: Dict[str, Any]) -> None:
         key = f"{label}:{name.lower()}"
@@ -53,6 +101,10 @@ class InMemoryGraphFallback:
         """
         if document_id in self.documents:
             del self.documents[document_id]
+
+        for cid, ch in list(self.chunks.items()):
+            if ch.get("document_id") == document_id:
+                del self.chunks[cid]
 
         orphaned_entities = []
         for key, node in list(self.nodes.items()):

@@ -32,6 +32,15 @@ class Neo4jGraphStore:
                 "title": title,
                 "num_chunks": len(chunks),
             }
+            for c in chunks:
+                self.client.in_memory_fallback.upsert_chunk(
+                    chunk_id=c.chunk_id,
+                    document_id=document_id,
+                    title=title,
+                    text=c.text,
+                    chunk_index=c.chunk_index,
+                    embedding=getattr(c, "embedding", None),
+                )
             return
 
         cypher_doc = """
@@ -374,3 +383,26 @@ class Neo4jGraphStore:
         except Exception as e:
             logger.debug(f"Direct vector index query exception: {e}. Falling back to in-memory cosine.")
             return self.client.in_memory_fallback.vector_search(query_embedding, top_k, use_gnn=use_gnn)
+
+    def search_chunks(
+        self, query_embedding: List[float], query_text: str = "", top_k: int = 4
+    ) -> List[Dict[str, Any]]:
+        """
+        Retrieves top semantically relevant document chunks for grounded context.
+        """
+        if not self.client.is_connected:
+            return self.client.in_memory_fallback.search_chunks(
+                query_vector=query_embedding, query_text=query_text, top_k=top_k
+            )
+
+        try:
+            cypher = """
+            MATCH (c:Chunk)
+            RETURN c.id AS chunk_id, c.document_id AS document_id, c.title AS title, c.text AS text, c.index AS chunk_index
+            LIMIT $top_k
+            """
+            return self.client.execute_query(cypher, {"top_k": top_k})
+        except Exception:
+            return self.client.in_memory_fallback.search_chunks(
+                query_vector=query_embedding, query_text=query_text, top_k=top_k
+            )

@@ -20,6 +20,7 @@ class Chunk:
     end_char: int
     token_count: int
     detected_entities: List[str] = field(default_factory=list)
+    embedding: Optional[List[float]] = None
 
 
 class SemanticChunker:
