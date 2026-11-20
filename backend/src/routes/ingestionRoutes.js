@@ -30,6 +30,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     }
 
     const documentId = `doc_${Date.now()}_${originalname.replace(/[^a-zA-Z0-9_\-\.]/g, "_")}`;
+    const fastMode = req.body.fast_mode !== undefined ? (req.body.fast_mode === "true" || req.body.fast_mode === true) : true;
 
     // Pass to Python Intelligence Service via gRPC
     const result = await grpcClient.updateKnowledgeGraph({
@@ -39,6 +40,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
       kHops: 2,
       triggerLeiden: true,
       invalidateCache: true,
+      fastMode,
     });
 
     console.log(`[Ingestion] Graph updated for [${originalname}]:`, result);
@@ -76,6 +78,7 @@ router.post("/text", async (req, res) => {
 
     const documentTitle = title || `Document_${new Date().toISOString()}`;
     const documentId = `doc_text_${Date.now()}`;
+    const fastMode = req.body.fast_mode !== undefined ? (req.body.fast_mode === true || req.body.fast_mode === "true") : true;
 
     const result = await grpcClient.updateKnowledgeGraph({
       documentId,
@@ -84,6 +87,7 @@ router.post("/text", async (req, res) => {
       kHops: 2,
       triggerLeiden: true,
       invalidateCache: true,
+      fastMode,
     });
 
     res.json({
@@ -108,6 +112,7 @@ router.post("/text", async (req, res) => {
 /**
  * POST /api/ingest/sync-gdrive
  * Scans connected Google Drive 'KONNECT' folder and ingests documents
+ * using the same fast ingestion pipeline as direct document uploads.
  */
 router.post("/sync-gdrive", async (req, res) => {
   try {
@@ -115,7 +120,7 @@ router.post("/sync-gdrive", async (req, res) => {
     if (!status.connected) {
       return res.status(400).json({
         success: false,
-        error: "Google Drive is not connected. Please authorize via /api/auth/gdrive/connect first.",
+        error: "Google Drive is not connected. Please authorize via /api/auth/google/connect first.",
       });
     }
 
@@ -129,7 +134,7 @@ router.post("/sync-gdrive", async (req, res) => {
       try {
         const content = await gdriveService.fetchFileContent(file.id, file.name, file.mimeType);
         if (content && content.trim()) {
-          const documentId = `gdrive_${file.id}`;
+          const documentId = `doc_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_\-\.]/g, "_")}`;
           const result = await grpcClient.updateKnowledgeGraph({
             documentId,
             title: file.name,
@@ -137,11 +142,17 @@ router.post("/sync-gdrive", async (req, res) => {
             kHops: 2,
             triggerLeiden: true,
             invalidateCache: true,
+            fastMode: true,
           });
           ingestedCount++;
           results.push({
+            documentId,
             fileName: file.name,
             nodesUpdated: result.affected_nodes_count || result.new_entities_count || 0,
+            newEntities: result.new_entities_count || 0,
+            edgesUpdated: result.new_relationships_count || 0,
+            totalTimeMs: result.total_time_ms,
+            message: result.message,
           });
         }
       } catch (fileErr) {
@@ -153,7 +164,7 @@ router.post("/sync-gdrive", async (req, res) => {
       success: true,
       folderScoped: true,
       folderName: "KONNECT",
-      message: `Scanned private 'KONNECT' folder. Synchronized ${ingestedCount} documents to Knowledge Graph.`,
+      message: `Scanned private 'KONNECT' folder. Synchronized ${ingestedCount} documents with fast ingestion.`,
       ingestedCount,
       documents: results,
     });
@@ -165,6 +176,7 @@ router.post("/sync-gdrive", async (req, res) => {
 /**
  * POST /api/ingest/sync-onedrive
  * Scans connected OneDrive 'KONNECT' folder and ingests documents
+ * using the same fast ingestion pipeline as direct document uploads.
  */
 router.post("/sync-onedrive", async (req, res) => {
   try {
@@ -178,7 +190,7 @@ router.post("/sync-onedrive", async (req, res) => {
       try {
         const content = await onedriveService.fetchFileContent(file.id, file.name, file.file?.mimeType);
         if (content && content.trim()) {
-          const documentId = `onedrive_${file.id}`;
+          const documentId = `doc_${Date.now()}_${file.name.replace(/[^a-zA-Z0-9_\-\.]/g, "_")}`;
           const result = await grpcClient.updateKnowledgeGraph({
             documentId,
             title: file.name,
@@ -186,11 +198,17 @@ router.post("/sync-onedrive", async (req, res) => {
             kHops: 2,
             triggerLeiden: true,
             invalidateCache: true,
+            fastMode: true,
           });
           ingestedCount++;
           results.push({
+            documentId,
             fileName: file.name,
             nodesUpdated: result.affected_nodes_count || result.new_entities_count || 0,
+            newEntities: result.new_entities_count || 0,
+            edgesUpdated: result.new_relationships_count || 0,
+            totalTimeMs: result.total_time_ms,
+            message: result.message,
           });
         }
       } catch (fileErr) {
@@ -202,7 +220,7 @@ router.post("/sync-onedrive", async (req, res) => {
       success: true,
       folderScoped: true,
       folderName: "KONNECT",
-      message: `Scanned private 'KONNECT' folder. Synchronized ${ingestedCount} documents to Knowledge Graph.`,
+      message: `Scanned private 'KONNECT' folder. Synchronized ${ingestedCount} documents with fast ingestion.`,
       ingestedCount,
       documents: results,
     });

@@ -48,11 +48,13 @@ class IntelligenceServicer(pb2_grpc.IntelligenceServiceServicer):
 
     def ParseDocument(self, request: pb2.ParseDocumentRequest, context) -> pb2.ParseDocumentResponse:
         t0 = time.perf_counter()
+        meta = getattr(request, "metadata", {}) or {}
+        fast_mode = str(meta.get("fast_mode", "true")).lower() != "false"
         chunks = self.incremental_engine.chunker.chunk_document(
             document_id=request.document_id, text=request.content
         )
         entities, relationships = self.incremental_engine.extractor.extract_from_document(
-            document_id=request.document_id, title=request.title, chunks=chunks
+            document_id=request.document_id, title=request.title, chunks=chunks, fast_mode=fast_mode
         )
         elapsed_ms = (time.perf_counter() - t0) * 1000.0
 
@@ -104,6 +106,8 @@ class IntelligenceServicer(pb2_grpc.IntelligenceServiceServicer):
     def UpdateKnowledgeGraph(
         self, request: pb2.UpdateKnowledgeGraphRequest, context
     ) -> pb2.UpdateKnowledgeGraphResponse:
+        meta = getattr(request, "metadata", {}) or {}
+        fast_mode = str(meta.get("fast_mode", "true")).lower() != "false"
         result = self.incremental_engine.process_document_update(
             document_id=request.document_id,
             title=request.title,
@@ -111,6 +115,7 @@ class IntelligenceServicer(pb2_grpc.IntelligenceServiceServicer):
             k_hops=request.k_hops if request.k_hops > 0 else 2,
             trigger_leiden=request.trigger_leiden,
             invalidate_cache=request.invalidate_cache,
+            fast_mode=fast_mode,
         )
 
         return pb2.UpdateKnowledgeGraphResponse(

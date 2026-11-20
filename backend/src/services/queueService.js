@@ -219,8 +219,10 @@ class QueueService {
         try {
           if (jobData.source === "gdrive") {
             content = await gdriveService.fetchFileContent(jobData.documentId, jobData.fileName, jobData.mimeType);
-          } else {
+          } else if (jobData.source === "onedrive") {
             content = await onedriveService.fetchFileContent(jobData.documentId, jobData.fileName, jobData.mimeType);
+          } else {
+            throw new Error(`Unsupported provider: ${jobData.source || provider}`);
           }
           console.log(
             `[Sync Worker] Fetched content for document ${jobData.documentId} (length: ${
@@ -231,8 +233,6 @@ class QueueService {
           console.warn(
             `[Sync Worker] Could not fetch raw content for ${jobData.documentId}: ${fetchErr.message}`
           );
-        } else {
-          throw new Error(`Unsupported provider: ${provider}`);
         }
       }
 

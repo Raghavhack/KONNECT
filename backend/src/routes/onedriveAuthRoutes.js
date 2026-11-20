@@ -115,8 +115,16 @@ router.get("/status", async (req, res) => {
 
   const isExpired = tokenStore.isExpired();
 
+  if (isExpired && !tokens.refreshToken) {
+    tokenStore.clear();
+    return res.json({
+      connected: false,
+      message: "OneDrive session expired. Please sign in again.",
+    });
+  }
+
   res.json({
-    connected: true,
+    connected: !isExpired,
     account: tokens.accountInfo || null,
     isExpired: isExpired,
     expiresAt: new Date(tokens.expiresAt).toISOString(),

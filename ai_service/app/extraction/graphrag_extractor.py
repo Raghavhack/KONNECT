@@ -51,12 +51,11 @@ class GraphRAGIncrementalExtractor:
         try:
             parsed = None
             last_parse_err = None
-            # Malformed JSON from a small model is a sampling accident, not a systematic failure.
-            # Re-ask with a slightly higher temperature (a genuinely different sample); raise if all fail.
             for temp in (0.0,):
                 raw_response = self.llm.generate(
                     prompt=prompt,
                     system_prompt=GRAPHRAG_EXTRACTION_SYSTEM_PROMPT,
+                    max_tokens=220,
                     temperature=temp,
                 )
                 try:
@@ -66,55 +65,34 @@ class GraphRAGIncrementalExtractor:
                     last_parse_err = pe
                     logger.warning(f"Malformed JSON for chunk {chunk.chunk_id}: {pe}")
             if parsed is None:
-                logger.warning(
-                    f"LLM extraction returned unparseable JSON for chunk {chunk.chunk_id}. "
-                    "Falling back to resilient spaCy NER entity extraction."
+                logger.info(
+                    f"Using resilient sentence-grounded extraction for chunk {chunk.chunk_id}."
                 )
-                detected = getattr(chunk, "detected_entities", [])
-                for name in detected:
-                    clean_name = str(name).strip()
-                    if len(clean_name) < 2:
-                        continue
-                    entity_id = hashlib.sha256(clean_name.lower().encode()).hexdigest()[:16]
-                    emb = self.embedder.embed_text(clean_name).tolist()
-                    entities.append(
-                        ExtractedEntity(
-                            id=entity_id,
-                            name=clean_name,
-                            type="ENTITY",
-                            description=f"Extracted from {chunk.document_id}",
-                            importance_score=0.8,
-                            embedding=emb,
-                            properties={"source_chunk": chunk.chunk_id},
-                        )
-                    )
-                for i in range(len(entities) - 1):
-                    src_n = entities[i].name
-                    tgt_n = entities[i + 1].name
-                    relationships.append(
-                        ExtractedRelationship(
-                            id=hashlib.sha256(f"{src_n.lower()}:{tgt_n.lower()}:ASSOCIATED_WITH".encode()).hexdigest()[:16],
-                            source_name=src_n,
-                            target_name=tgt_n,
-                            relation_type="ASSOCIATED_WITH",
-                            description=f"Co-occurs in document chunk {chunk.chunk_id}",
-                            weight=0.7,
-                        )
-                    )
-                return entities, relationships
+                return self._fallback_extraction(chunk)
 
             raw_entities = parsed.get("entities", [])
-            raw_relations = parsed.get("relationships", [])
+            raw_relations = parsed.get("relationships", []) or parsed.get("relations", [])
+
+            # Split chunk text into lines to attach matching sentences if description is omitted
+            chunk_lines = [line.strip() for line in chunk.text.split("\n") if len(line.strip()) > 3]
 
             # Process entities
             for ent in raw_entities:
                 name = str(ent.get("name", "")).strip()
-                if not name:
+                if not name or len(name) < 2 or name.isdigit():
                     continue
                 ent_type = str(ent.get("type", "CONCEPT")).strip().upper()
                 desc = str(ent.get("description", "")).strip()
-                importance = float(ent.get("importance_score", 1.0))
+                if not desc:
+                    # Automatically find matching context sentence in chunk text
+                    for line in chunk_lines:
+                        if name.lower() in line.lower():
+                            desc = line[:220]
+                            break
+                    if not desc:
+                        desc = f"Referenced in {chunk.document_id}"
 
+                importance = float(ent.get("importance_score", 1.0))
                 entity_id = hashlib.sha256(name.lower().encode()).hexdigest()[:16]
                 emb = self.embedder.embed_text(f"{name}: {desc}").tolist()
 
@@ -137,8 +115,8 @@ class GraphRAGIncrementalExtractor:
                 if not src or not tgt or src.lower() == tgt.lower():
                     continue
 
-                rel_type = str(rel.get("relation_type", "RELATED_TO")).strip().upper()
-                rel_desc = str(rel.get("description", "")).strip()
+                rel_type = str(rel.get("relation_type") or rel.get("relation") or "RELATED_TO").strip().upper()
+                rel_desc = str(rel.get("description", "")).strip() or f"{src} is related to {tgt}"
                 rel_weight = float(rel.get("weight", 1.0))
 
                 rel_id = hashlib.sha256(
@@ -158,7 +136,11 @@ class GraphRAGIncrementalExtractor:
                 )
 
         except Exception as e:
-            logger.warning(f"LLM extraction failed for chunk {chunk.chunk_id}: {e}. Falling back to spaCy entity extraction.")
+            logger.warning(f"Extraction exception for chunk {chunk.chunk_id}: {e}. Falling back to NLP entity extraction.")
+            return self._fallback_extraction(chunk)
+
+        # If LLM returned zero entities, fall back to NLP entity extraction
+        if not entities:
             return self._fallback_extraction(chunk)
 
         return entities, relationships
@@ -182,8 +164,16 @@ class GraphRAGIncrementalExtractor:
         # Split text into lines/sentences to find exact grounding sentences
         raw_lines = [line.strip() for line in chunk.text.split("\n") if len(line.strip()) > 3]
 
+        # Candidate names from detected entities and capital phrase patterns
+        candidate_names = list(getattr(chunk, "detected_entities", []))
+        if len(candidate_names) < 8:
+            phrase_matches = re.findall(r"\b[A-Z][a-zA-Z0-9_\-\.\+]+(?:\s+[A-Z][a-zA-Z0-9_\-\.\+]+)*\b", chunk.text)
+            for pm in phrase_matches:
+                if len(pm) > 2 and pm not in candidate_names:
+                    candidate_names.append(pm)
+
         # Extract entities from detected spotted entities
-        for ent_name in getattr(chunk, "detected_entities", []):
+        for ent_name in candidate_names:
             normalized = ent_name.strip()
             norm_lower = normalized.lower()
             if (
@@ -235,17 +225,22 @@ class GraphRAGIncrementalExtractor:
         return entities, relationships
 
     def extract_from_document(
-        self, document_id: str, title: str, chunks: List[Chunk]
+        self, document_id: str, title: str, chunks: List[Chunk], fast_mode: bool = True
     ) -> Tuple[List[ExtractedEntity], List[ExtractedRelationship]]:
         """
         Processes all chunks for a given document and consolidates entities & relationships.
         Merges duplicate entities across chunks and unions relationships.
+        When fast_mode is True (default), extracts grounded entities via high-speed NLP in <20ms.
+        When fast_mode is False, invokes the compact LLM prompt for deep extraction.
         """
         entity_map: Dict[str, ExtractedEntity] = {}
         relationship_map: Dict[str, ExtractedRelationship] = {}
 
         for chunk in chunks:
-            chunk_entities, chunk_rels = self.extract_from_chunk(chunk)
+            if fast_mode:
+                chunk_entities, chunk_rels = self._fallback_extraction(chunk)
+            else:
+                chunk_entities, chunk_rels = self.extract_from_chunk(chunk)
 
             for ent in chunk_entities:
                 norm_key = ent.name.lower()

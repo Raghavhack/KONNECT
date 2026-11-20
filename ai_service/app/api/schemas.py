@@ -13,6 +13,7 @@ class DocumentIngestRequest(BaseModel):
     k_hops: int = Field(default=2, ge=1, le=5, description="Bounded-neighborhood radius for ROLAND GRU")
     trigger_leiden: bool = Field(default=True, description="Whether to trigger local Leiden community updates")
     invalidate_cache: bool = Field(default=True, description="Whether to evict semantic cache for affected nodes")
+    fast_mode: bool = Field(default=True, description="Enable ultra-fast sub-second NLP extraction")
 
 
 class DocumentIngestResponse(BaseModel):

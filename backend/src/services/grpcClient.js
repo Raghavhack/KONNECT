@@ -74,7 +74,8 @@ class GrpcIntelligenceClient {
   /**
    * Incremental Knowledge Graph Update
    */
-  async updateKnowledgeGraph({ documentId, title, content, kHops = 2, triggerLeiden = true, invalidateCache = true, metadata = {} }) {
+  async updateKnowledgeGraph({ documentId, title, content, kHops = 2, triggerLeiden = true, invalidateCache = true, metadata = {}, fastMode = true }) {
+    const meta = { ...metadata, fast_mode: fastMode ? "true" : "false" };
     const requestPayload = {
       document_id: documentId,
       title: title || documentId,
@@ -82,7 +83,7 @@ class GrpcIntelligenceClient {
       k_hops: kHops,
       trigger_leiden: triggerLeiden,
       invalidate_cache: invalidateCache,
-      metadata,
+      metadata: meta,
     };
 
     if (this.isReady && this.client) {
@@ -112,6 +113,7 @@ class GrpcIntelligenceClient {
           k_hops: kHops,
           trigger_leiden: triggerLeiden,
           invalidate_cache: invalidateCache,
+          fast_mode: fastMode,
         });
         return res.data;
       },

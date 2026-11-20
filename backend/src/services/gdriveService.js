@@ -1,18 +1,41 @@
 const fs = require("fs");
 const path = require("path");
 const axios = require("axios");
+const dotenv = require("dotenv");
 const { withExponentialBackoff } = require("../utils/retry");
 const documentParser = require("./documentParser");
 
 const TOKEN_FILE = path.resolve(__dirname, "../../.gdrive_tokens.json");
 
+function reloadEnv() {
+  dotenv.config({ path: path.resolve(__dirname, "../../.env") });
+  dotenv.config({ path: path.resolve(__dirname, "../../../.env") });
+}
+
+reloadEnv();
+
 class GoogleDriveService {
   constructor() {
-    this.clientId = process.env.GOOGLE_CLIENT_ID || "demo-google-client-id";
-    this.clientSecret = process.env.GOOGLE_CLIENT_SECRET || "demo-google-client-secret";
-    this.redirectUri = process.env.GOOGLE_REDIRECT_URI || "http://localhost:5000/api/auth/gdrive/callback";
     this.tokens = this._loadTokens();
     this.konnectFolderId = this.tokens?.konnectFolderId || null;
+  }
+
+  get clientId() {
+    reloadEnv();
+    return process.env.GOOGLE_CLIENT_ID || "demo-google-client-id";
+  }
+
+  get clientSecret() {
+    reloadEnv();
+    return process.env.GOOGLE_CLIENT_SECRET || "demo-google-client-secret";
+  }
+
+  get redirectUri() {
+    reloadEnv();
+    return (
+      process.env.GOOGLE_REDIRECT_URI ||
+      "http://localhost:5000/api/auth/google/callback"
+    );
   }
 
   _loadTokens() {
@@ -38,10 +61,11 @@ class GoogleDriveService {
     }
   }
 
-  getAuthUrl() {
+  getAuthUrl(customRedirectUri = null) {
+    const finalRedirectUri = customRedirectUri || this.redirectUri;
     const rootUrl = "https://accounts.google.com/o/oauth2/v2/auth";
     const options = {
-      redirect_uri: this.redirectUri,
+      redirect_uri: finalRedirectUri,
       client_id: this.clientId,
       access_type: "offline",
       response_type: "code",
@@ -60,7 +84,8 @@ class GoogleDriveService {
     return `${rootUrl}?${qs.toString()}`;
   }
 
-  async handleCallback(code) {
+  async handleCallback(code, customRedirectUri = null) {
+    const finalRedirectUri = customRedirectUri || this.redirectUri;
     try {
       const response = await axios.post(
         "https://oauth2.googleapis.com/token",
@@ -68,7 +93,7 @@ class GoogleDriveService {
           code,
           client_id: this.clientId,
           client_secret: this.clientSecret,
-          redirect_uri: this.redirectUri,
+          redirect_uri: finalRedirectUri,
           grant_type: "authorization_code",
         }).toString(),
         { headers: { "Content-Type": "application/x-www-form-urlencoded" } }
@@ -164,9 +189,14 @@ class GoogleDriveService {
   }
 
   getStatus() {
+    const isRealToken = Boolean(
+      this.tokens?.access_token &&
+      this.tokens.access_token !== "demo_google_access_token" &&
+      !this.tokens.access_token.startsWith("demo_")
+    );
     return {
-      connected: Boolean(this.tokens?.access_token),
-      account: this.tokens?.account || null,
+      connected: isRealToken,
+      account: isRealToken ? this.tokens?.account : null,
       folderScoped: true,
       folderName: "KONNECT",
       folderId: this.konnectFolderId,

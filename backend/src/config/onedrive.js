@@ -3,6 +3,9 @@ const dotenv = require("dotenv");
 
 function reloadEnv() {
   dotenv.config({
+    path: path.resolve(__dirname, "../../.env"),
+  });
+  dotenv.config({
     path: path.resolve(__dirname, "../../../.env"),
   });
 }
@@ -36,7 +39,7 @@ const onedriveConfig = {
     }
     // Standard OIDC + Microsoft Graph scopes
     // In Microsoft identity v2.0, offline_access requires openid
-    return ["openid", "profile", "offline_access", "User.Read", "Files.Read"];
+    return ["openid", "profile", "offline_access", "User.Read", "Files.ReadWrite"];
   },
   authEndpoint: "https://login.microsoftonline.com",
   graphEndpoint: "https://graph.microsoft.com/v1.0",

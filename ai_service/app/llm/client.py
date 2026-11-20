@@ -52,10 +52,11 @@ class LLMClient:
         if self.provider not in SUPPORTED_PROVIDERS:
             raise ValueError(f"LLM_PROVIDER must be one of {SUPPORTED_PROVIDERS}, got {provider!r}")
 
-        self.default_model = model or "gpt-4o"
+        self.default_model = model or "gemini-3.5-flash-lite"
         self.max_retries = max_retries
         self.base_delay = base_delay
-        self.has_credentials = bool(api_key and model and self.provider != "mock")
+        clean_key = (api_key or "").strip()
+        self.has_credentials = bool(clean_key and model and self.provider != "mock")
 
         if not self.has_credentials:
             logger.info("Operating LLMClient in local grounded mode (no external API key provided).")
@@ -67,24 +68,31 @@ class LLMClient:
         if self.provider in ("openai", "ollama"):
             if openai is None:
                 raise ImportError("openai package is required: pip install openai")
-            self._openai = openai.OpenAI(api_key=api_key, base_url=base_url)
+            self._openai = openai.OpenAI(api_key=clean_key, base_url=base_url)
         elif self.provider == "anthropic":
             if anthropic is None:
                 raise ImportError("anthropic package is required: pip install anthropic")
-            self._anthropic = anthropic.Anthropic(api_key=api_key)
+            self._anthropic = anthropic.Anthropic(api_key=clean_key)
         else:
             if genai is None:
                 raise ImportError("google-genai package is required: pip install google-genai")
-            self._gemini = genai.Client(api_key=api_key)
+            self._gemini = genai.Client(api_key=clean_key)
 
     @classmethod
     def from_settings(cls, s) -> "LLMClient":
         """Build the client from app.config.settings. Single place that maps provider -> key/model."""
-        provider = (s.LLM_PROVIDER or "").lower()
+        import os
+        provider = (s.LLM_PROVIDER or "gemini").lower()
+        gemini_key = (
+            s.GEMINI_API_KEY
+            or os.environ.get("GEMINI_API_KEY")
+            or os.environ.get("GOOGLE_API_KEY")
+            or ""
+        ).strip()
         table = {
             "openai": (s.OPENAI_API_KEY, s.OPENAI_MODEL),
             "anthropic": (s.ANTHROPIC_API_KEY, s.ANTHROPIC_MODEL),
-            "gemini": (s.GEMINI_API_KEY, s.GEMINI_MODEL),
+            "gemini": (gemini_key, s.GEMINI_MODEL or "gemini-3.5-flash-lite"),
             "ollama": ("ollama", s.OLLAMA_MODEL or "llama3.2"),
         }
         if provider not in table:
@@ -101,6 +109,13 @@ class LLMClient:
 
     def _call_once(self, prompt, system_prompt, model, temperature, max_tokens) -> str:
         if not getattr(self, "has_credentials", True):
+            if self.provider == "gemini":
+                return (
+                    "**KONNECT AI (Gemini Mode)**: Gemini API is selected as the LLM provider, "
+                    "but `GEMINI_API_KEY` is not set or empty. "
+                    "Please set `GEMINI_API_KEY=your_key_here` in `backend/.env` or `.env` to enable real-time Gemini generation."
+                )
+
             # Extract question and context entities cleanly
             question = ""
             for line in prompt.split("\n"):
@@ -166,20 +181,31 @@ class LLMClient:
             )
             return resp.content[0].text or ""
 
-        resp = self._gemini.models.generate_content(
-            model=model,
-            contents=prompt,
-            config=genai_types.GenerateContentConfig(
-                system_instruction=system_prompt or None,
-                temperature=temperature,
-                max_output_tokens=max(max_tokens, GEMINI_MIN_OUTPUT_TOKENS),
-            ),
-        )
-        text = resp.text
-        if not text:
-            # Blocked by safety filters or truncated by the token cap: surface it, don't return "".
-            raise RuntimeError(f"Gemini returned no text (finish info: {getattr(resp, 'candidates', None)})")
-        return text
+        if self.provider == "gemini":
+            try:
+                interaction = self._gemini.interactions.create(
+                    model=model,
+                    system_instruction=system_prompt or None,
+                    input=prompt,
+                )
+                text = interaction.output_text
+                if text:
+                    return text
+            except Exception as e:
+                logger.warning(f"Interactions API call failed ({e}). Falling back to models.generate_content...")
+
+            resp = self._gemini.models.generate_content(
+                model=model,
+                contents=prompt,
+                config=genai_types.GenerateContentConfig(
+                    system_instruction=system_prompt or None,
+                    temperature=temperature,
+                ),
+            )
+            text = resp.text
+            if not text:
+                raise RuntimeError(f"Gemini returned no text (finish info: {getattr(resp, 'candidates', None)})")
+            return text
 
     def generate(
         self,

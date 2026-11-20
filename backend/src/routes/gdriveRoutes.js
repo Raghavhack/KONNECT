@@ -4,16 +4,21 @@ const gdriveService = require("../services/gdriveService");
 const queueService = require("../services/queueService");
 
 /**
- * GET /api/auth/gdrive/connect
+ * GET /api/auth/gdrive/connect or /api/auth/google/connect
  * Redirects user to Google OAuth 2.0 consent screen
  */
 router.get("/connect", (req, res) => {
-  const url = gdriveService.getAuthUrl();
+  const protocol = req.protocol;
+  const host = req.get("host");
+  const fallbackUrl = `${protocol}://${host}${req.baseUrl}/callback`;
+  const redirectUri = process.env.GOOGLE_REDIRECT_URI || fallbackUrl;
+
+  const url = gdriveService.getAuthUrl(redirectUri);
   res.redirect(url);
 });
 
 /**
- * GET /api/auth/gdrive/callback
+ * GET /api/auth/gdrive/callback or /api/auth/google/callback
  * Handles OAuth callback
  */
 router.get("/callback", async (req, res) => {
@@ -23,7 +28,12 @@ router.get("/callback", async (req, res) => {
   }
 
   try {
-    await gdriveService.handleCallback(code);
+    const protocol = req.protocol;
+    const host = req.get("host");
+    const fallbackUrl = `${protocol}://${host}${req.baseUrl}/callback`;
+    const redirectUri = process.env.GOOGLE_REDIRECT_URI || fallbackUrl;
+
+    await gdriveService.handleCallback(code, redirectUri);
     const frontendUrl = process.env.FRONTEND_URL || "http://localhost:5173";
     res.redirect(`${frontendUrl}/live-demo?gdrive=connected`);
   } catch (err) {

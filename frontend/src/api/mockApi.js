@@ -177,6 +177,7 @@ export async function sendQuery(text, _sessionId) {
       return {
         answer: data.answer,
         citations: data.citations || [],
+        subgraph: data.subgraph || null,
         logEvents: data.logEvents || [
           { tag: "QUERY", text: `PCST solver received: "${text.slice(0, 32)}…"` },
           { tag: "PCST", text: "Retrieved minimal connected reasoning tree" },

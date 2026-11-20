@@ -2,39 +2,19 @@
 Prompts for GraphRAG Entity & Relationship Extraction and Community Summarization.
 """
 
-GRAPHRAG_EXTRACTION_SYSTEM_PROMPT = """You are an expert knowledge graph extraction agent.
-Your task is to analyze the input text chunk and extract all salient entities and relationships connecting them.
-
-Output ONLY a valid JSON object with two arrays: "entities" and "relationships".
-
-Format:
+GRAPHRAG_EXTRACTION_SYSTEM_PROMPT = """Extract the top 5-8 salient entities and key relationships from the text as compact JSON.
+Output ONLY raw JSON (no markdown formatting, no commentary):
 {
   "entities": [
-    {
-      "name": "Entity Name (canonical and concise)",
-      "type": "ORGANIZATION | PERSON | LOCATION | EVENT | CONCEPT | TECHNOLOGY | DOCUMENT",
-      "description": "Comprehensive explanation of what this entity is in the context of the text.",
-      "importance_score": 1.0 (float between 0.1 and 1.0)
-    }
+    {"name": "Entity Name", "type": "PERSON | ORG | TECH | CONCEPT | LOCATION"}
   ],
   "relationships": [
-    {
-      "source": "Exact Name of Source Entity",
-      "target": "Exact Name of Target Entity",
-      "relation_type": "HIERARCHICAL | INTERACTION | CAUSAL | DEPENDENCY | AFFILIATION | SIMILAR_TO",
-      "description": "Specific explanation of how source and target interact or relate.",
-      "weight": 1.0 (float between 0.1 and 1.0)
-    }
+    {"source": "Entity1", "target": "Entity2", "relation_type": "RELATES_TO | MEMBER_OF | USES | CREATED"}
   ]
 }
-
-Guidelines:
-1. Prefer specific entity names over general terms.
-2. Every relationship must connect two entities present in the entities list or clearly identifiable.
-3. Ensure descriptions are grounded strictly in the provided text.
-4. Do not include markdown formatting or commentary, only raw JSON.
-5. Extract at most 15 entities and at most 20 relationships, keeping only the most important ones. Keep every description under 25 words.
-"""
+Rules:
+1. Extract canonical entity names (e.g. "Pranay Mehta", "Flowcraft Systems", "AION").
+2. No descriptions needed in JSON. Keep output under 150 tokens."""
 
 ENTITY_DISAMBIGUATION_PROMPT = """You are an entity resolution expert.
 Given a newly extracted entity and a list of existing candidate entities from our knowledge graph,

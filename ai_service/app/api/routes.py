@@ -63,6 +63,7 @@ async def update_document(
             k_hops=payload.k_hops,
             trigger_leiden=payload.trigger_leiden,
             invalidate_cache=payload.invalidate_cache,
+            fast_mode=payload.fast_mode,
         )
         return DocumentIngestResponse(**res)
     except Exception as e:

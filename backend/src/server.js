@@ -63,7 +63,9 @@ app.use("/api", streamRoutes);
 app.use("/api/auth/onedrive", onedriveAuthRoutes);
 app.use("/api/webhooks/onedrive", onedriveWebhookRoutes);
 app.use("/api/auth/gdrive", gdriveRoutes);
+app.use("/api/auth/google", gdriveRoutes);
 app.use("/api/webhooks/gdrive", gdriveRoutes);
+app.use("/api/webhooks/google", gdriveRoutes);
 app.use("/api/billing", billingRoutes);
 app.use("/api/ingest", ingestionRoutes);
 

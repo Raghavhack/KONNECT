@@ -70,11 +70,12 @@ class IncrementalEngine:
         k_hops: int = 2,
         trigger_leiden: bool = True,
         invalidate_cache: bool = True,
+        fast_mode: bool = True,
     ) -> Dict[str, Any]:
         """
         Executes the end-to-end incremental update pipeline:
         1. spaCy Preprocessing & Chunking
-        2. GraphRAG entity & relation extraction
+        2. GraphRAG entity & relation extraction (Fast-Path NLP or LLM triples)
         3. Upsert to Neo4j knowledge store
         4. Bounded k-hop neighborhood retrieval
         5. ROLAND GRU dynamic re-embedding
@@ -95,7 +96,7 @@ class IncrementalEngine:
         # Step 2: GraphRAG Extraction
         t0 = time.perf_counter()
         entities, relationships = self.extractor.extract_from_document(
-            document_id=document_id, title=title, chunks=chunks
+            document_id=document_id, title=title, chunks=chunks, fast_mode=fast_mode
         )
         extract_time_ms = (time.perf_counter() - t0) * 1000.0
 

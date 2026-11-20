@@ -11,7 +11,10 @@ from pathlib import Path
 
 class Settings(BaseSettings):
     model_config = SettingsConfigDict(
-        env_file=str(Path(__file__).resolve().parents[2] / ".env"),
+        env_file=[
+            str(Path(__file__).resolve().parents[2] / ".env"),
+            str(Path(__file__).resolve().parents[2] / "backend" / ".env"),
+        ],
         env_file_encoding="utf-8",
         extra="ignore"
     )
@@ -76,9 +79,9 @@ class Settings(BaseSettings):
     PCST_USE_GNN: bool = Field(default=True, env="PCST_USE_GNN")  # Set False for Arm D ablation
 
     # LLM Settings (Ollama / OpenAI / Anthropic / Gemini)
-    LLM_PROVIDER: str = Field(default="ollama", env="LLM_PROVIDER")
+    LLM_PROVIDER: str = Field(default="gemini", env="LLM_PROVIDER")
     GEMINI_API_KEY: Optional[str] = Field(default=None, env="GEMINI_API_KEY")
-    GEMINI_MODEL: str = Field(default="gemini-2.5-flash", env="GEMINI_MODEL")
+    GEMINI_MODEL: str = Field(default="gemini-3.5-flash-lite", env="GEMINI_MODEL")
     OPENAI_API_KEY: Optional[str] = Field(default=None, env="OPENAI_API_KEY")
     OPENAI_MODEL: str = Field(default="gpt-4o", env="OPENAI_MODEL")
     ANTHROPIC_API_KEY: Optional[str] = Field(default=None, env="ANTHROPIC_API_KEY")
